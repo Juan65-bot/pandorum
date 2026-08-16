@@ -6,6 +6,7 @@ import { List, CalendarDays } from 'lucide-react'
 import Header from '@/components/Header'
 import SessionCard from '@/components/SessionCard'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { cn } from '@/lib/utils'
 import type { Appointment, Role } from '@/lib/types'
 
@@ -23,7 +24,7 @@ export default function SessoesPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth/login?next=/sessoes'); return }
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const profile = await ensureProfile(supabase, user)
     const papel = (profile?.role as Role) || 'patient'
     setRole(papel)
 
@@ -33,7 +34,7 @@ export default function SessoesPage() {
       .order('starts_at', { ascending: false })
 
     if (papel === 'psychologist') {
-      const { data: psi } = await supabase.from('psychologists').select('id').eq('profile_id', user.id).single()
+      const { data: psi } = await supabase.from('psychologists').select('id').eq('profile_id', user.id).maybeSingle()
       query = query.eq('psychologist_id', psi?.id || '')
     } else {
       query = query.eq('patient_id', user.id)

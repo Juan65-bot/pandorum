@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import AvatarUpload from '@/components/AvatarUpload'
 import AvailabilityManager from '@/components/AvailabilityManager'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { psychologistProfileSchema, type PsychologistProfileInput } from '@/lib/validation'
 import { ESPECIALIDADES, ABORDAGENS, type PsychologistStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -44,7 +45,7 @@ export default function CompletarPerfilPsicologoPage() {
       if (!user) { router.push('/auth/login'); return }
       setUserId(user.id)
 
-      const { data: profile } = await supabase.from('profiles').select('role, avatar_url').eq('id', user.id).single()
+      const profile = await ensureProfile(supabase, user)
       if (profile?.role !== 'psychologist') {
         router.push('/dashboard')
         return

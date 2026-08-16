@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search, Calendar, User, ShieldCheck, BadgeCheck, Clock } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { formatarDataHora } from '@/lib/utils'
 import type { Appointment, Profile, Role } from '@/lib/types'
 
@@ -23,7 +24,7 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth/login'); return }
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const profileData = await ensureProfile(supabase, user)
       setProfile(profileData)
       const role: Role = profileData?.role || 'patient'
 

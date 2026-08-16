@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { registerSchema, type RegisterInput } from '@/lib/validation'
@@ -50,6 +51,10 @@ export default function RegisterPage() {
     if (!data.session) {
       router.push('/auth/login?confirmacao=1')
       return
+    }
+
+    if (data.user) {
+      await ensureProfile(supabase, data.user)
     }
 
     if (dados.tipo === 'psychologist') {

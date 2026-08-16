@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import AvatarUpload from '@/components/AvatarUpload'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { patientProfileSchema, type PatientProfileInput } from '@/lib/validation'
 import type { Profile } from '@/lib/types'
 
@@ -30,7 +31,7 @@ export default function PerfilPage() {
       if (!user) { router.push('/auth/login'); return }
       setUserId(user.id)
 
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const data = await ensureProfile(supabase, user)
 
       if (data?.role === 'psychologist') {
         router.push('/psicologo/completar-perfil')
@@ -43,7 +44,7 @@ export default function PerfilPage() {
         .from('patients')
         .select('*')
         .eq('profile_id', user.id)
-        .single()
+        .maybeSingle()
 
       reset({
         telefone: data?.phone || '',
@@ -68,7 +69,7 @@ export default function PerfilPage() {
       .from('patients')
       .select('id')
       .eq('profile_id', user.id)
-      .single()
+      .maybeSingle()
 
     const payload = {
       birth_date: dados.nascimento || null,

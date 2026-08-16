@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import type { Profile } from '@/lib/types'
 
 export function useSession() {
@@ -19,11 +20,7 @@ export function useSession() {
       setUser(user)
 
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
+        const profile = await ensureProfile(supabase, user)
         if (ativo) setProfile(profile)
       }
 

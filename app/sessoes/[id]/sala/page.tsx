@@ -3,6 +3,7 @@ import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { podeEntrarNaSala } from '@/lib/scheduling'
 import { formatarDataHora } from '@/lib/utils'
 import VideoRoom from '@/components/VideoRoom'
@@ -24,7 +25,7 @@ export default function SalaPage({ params }: { params: Promise<{ id: string }> }
       if (!user) { router.push(`/auth/login?next=/sessoes/${id}/sala`); return }
       setUserId(user.id)
 
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      const profile = await ensureProfile(supabase, user)
       setRole((profile?.role as Role) || 'patient')
 
       const { data } = await supabase
