@@ -26,16 +26,27 @@ export default function BookingCalendar({ psychologistId, sessionPrice }: Bookin
 
   useEffect(() => {
     async function carregar() {
-      const [{ data: { user } }, { data: disp }, { data: ocupados }] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from('availability_slots').select('*').eq('psychologist_id', psychologistId),
-        supabase.rpc('get_busy_slots', { p_psychologist_id: psychologistId }),
-      ])
+      try {
+        const [{ data: { user } }, { data: disp }, { data: ocupados, error: erroOcupados }] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase.from('availability_slots').select('*').eq('psychologist_id', psychologistId),
+          supabase.rpc('get_busy_slots', { p_psychologist_id: psychologistId }),
+        ])
 
-      setLogado(!!user)
-      setAvailability(disp || [])
-      setBusySlots((ocupados || []).map((o: { starts_at: string }) => new Date(o.starts_at)))
-      setLoading(false)
+        if (erroOcupados) {
+          // A verificação de horários ocupados é só para UX (filtrar o que mostrar);
+          // a unique index em appointments é quem garante que não haverá double-booking de fato.
+          console.error('Não foi possível verificar horários ocupados:', erroOcupados.message)
+        }
+
+        setLogado(!!user)
+        setAvailability(disp || [])
+        setBusySlots((ocupados || []).map((o: { starts_at: string }) => new Date(o.starts_at)))
+      } catch (err) {
+        console.error('Erro ao carregar disponibilidade:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     carregar()
   }, [psychologistId])

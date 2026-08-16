@@ -47,7 +47,7 @@ export default function DashboardPage() {
           supabase.from('appointments').select('*', { count: 'exact', head: true }).eq(idFiltro.coluna, idFiltro.valor).eq('status', 'confirmed').gte('starts_at', new Date().toISOString()),
           supabase
             .from('appointments')
-            .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles(*))')
+            .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles!profile_id(*))')
             .eq(idFiltro.coluna, idFiltro.valor)
             .in('status', ['confirmed', 'scheduled'])
             .gte('starts_at', new Date().toISOString())

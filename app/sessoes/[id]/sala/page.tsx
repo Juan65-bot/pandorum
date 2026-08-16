@@ -29,7 +29,7 @@ export default function SalaPage({ params }: { params: Promise<{ id: string }> }
 
       const { data } = await supabase
         .from('appointments')
-        .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles(*))')
+        .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles!profile_id(*))')
         .eq('id', id)
         .maybeSingle()
 

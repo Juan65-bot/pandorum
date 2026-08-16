@@ -23,7 +23,7 @@ function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
     async function carregar() {
       const { data } = await supabase
         .from('appointments')
-        .select('*, psychologists(*, profiles(*))')
+        .select('*, psychologists(*, profiles!profile_id(*))')
         .eq('id', id)
         .single()
       setAppointment(data as unknown as Appointment)

@@ -29,7 +29,7 @@ export default function SessoesPage() {
 
     let query = supabase
       .from('appointments')
-      .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles(*))')
+      .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles!profile_id(*))')
       .order('starts_at', { ascending: false })
 
     if (papel === 'psychologist') {

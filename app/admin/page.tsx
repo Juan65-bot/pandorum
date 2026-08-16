@@ -20,10 +20,10 @@ export default function AdminPage() {
 
     const [{ data: pend }, { data: rec }, { count: pacientes }, { count: psicologos }, { count: sessoes }, { data: pagos }] =
       await Promise.all([
-        supabase.from('psychologists').select('*, profiles(*)').eq('status', 'pending'),
+        supabase.from('psychologists').select('*, profiles!profile_id(*)').eq('status', 'pending'),
         supabase
           .from('appointments')
-          .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles(*))')
+          .select('*, patients_profile:profiles!patient_id(*), psychologists(*, profiles!profile_id(*))')
           .order('created_at', { ascending: false })
           .limit(10),
         supabase.from('patients').select('*', { count: 'exact', head: true }),

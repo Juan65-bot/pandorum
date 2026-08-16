@@ -12,7 +12,7 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
 
   const { data } = await supabase
     .from('psychologists')
-    .select('*, profiles(*)')
+    .select('*, profiles!profile_id(*)')
     .eq('id', id)
     .eq('status', 'approved')
     .maybeSingle()

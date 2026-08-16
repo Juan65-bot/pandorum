@@ -38,6 +38,13 @@ create policy "profiles_select_involved_in_appointment" on public.profiles
     )
   );
 
+-- o profile de um psicólogo aprovado é público (nome/foto na busca e na página /psicologos/[id])
+drop policy if exists "profiles_select_approved_psychologist" on public.profiles;
+create policy "profiles_select_approved_psychologist" on public.profiles
+  for select using (
+    id in (select profile_id from public.psychologists where status = 'approved')
+  );
+
 -- ========== PATIENTS ==========
 drop policy if exists "patients_owner_all" on public.patients;
 create policy "patients_owner_all" on public.patients

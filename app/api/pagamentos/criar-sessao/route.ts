@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('*, psychologists(session_price, profiles(full_name))')
+    .select('*, psychologists(session_price, profiles!profile_id(full_name))')
     .eq('id', appointmentId)
     .single()
 

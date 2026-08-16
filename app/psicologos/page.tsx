@@ -17,7 +17,7 @@ export default function PsicologosPage() {
     async function getPsicologos() {
       const { data } = await supabase
         .from('psychologists')
-        .select('*, profiles(*)')
+        .select('*, profiles!profile_id(*)')
         .eq('status', 'approved')
         .order('rating_avg', { ascending: false })
 
