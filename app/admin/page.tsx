@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { BadgeCheck, XCircle, Users, Calendar, Wallet, Clock } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
-import { formatarDataHora, formatarPreco } from '@/lib/utils'
+import { formatarDataHora, formatarPreco, capitalizarNome } from '@/lib/utils'
 import type { Appointment, Psychologist } from '@/lib/types'
 
 export default function AdminPage() {
@@ -89,7 +89,7 @@ export default function AdminPage() {
           <StatCard icon={<Calendar className="w-4 h-4" />} label="Sessões" valor={stats.sessoes} />
           <StatCard icon={<Wallet className="w-4 h-4" />} label="Receita paga" valor={formatarPreco(stats.receita)} />
         </div>
-        <p className="text-xs text-slate-400 -mt-8">Comissão da plataforma (15%): {formatarPreco(stats.comissao)}</p>
+        <p className="text-xs text-slate-400 -mt-8">Comissão da plataforma (20%): {formatarPreco(stats.comissao)}</p>
 
         <section>
           <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
@@ -103,7 +103,7 @@ export default function AdminPage() {
               {pendentes.map((p) => (
                 <div key={p.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-800">{p.profiles?.full_name}</p>
+                    <p className="font-medium text-slate-800">{capitalizarNome(p.profiles?.full_name)}</p>
                     <p className="text-sm text-slate-500">CRP {p.crp_number} · {p.profiles?.email}</p>
                   </div>
                   <div className="flex gap-2">
@@ -137,9 +137,9 @@ export default function AdminPage() {
               {recentes.map((a) => (
                 <div key={a.id} className="px-5 py-3 flex items-center justify-between text-sm">
                   <div>
-                    <span className="text-slate-800">{a.patients_profile?.full_name}</span>
+                    <span className="text-slate-800">{capitalizarNome(a.patients_profile?.full_name)}</span>
                     <span className="text-slate-400"> → </span>
-                    <span className="text-slate-800">{a.psychologists?.profiles?.full_name}</span>
+                    <span className="text-slate-800">{capitalizarNome(a.psychologists?.profiles?.full_name)}</span>
                   </div>
                   <div className="text-slate-500">{formatarDataHora(a.starts_at)}</div>
                   <div className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{a.status}</div>

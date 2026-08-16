@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { podeEntrarNaSala } from '@/lib/scheduling'
-import { formatarDataHora } from '@/lib/utils'
+import { formatarDataHora, capitalizarNome } from '@/lib/utils'
 import VideoRoom from '@/components/VideoRoom'
 import type { Appointment, Role } from '@/lib/types'
 
@@ -73,8 +73,9 @@ export default function SalaPage({ params }: { params: Promise<{ id: string }> }
     )
   }
 
-  const outraPessoa =
+  const outraPessoa = capitalizarNome(
     role === 'psychologist' ? appointment.patients_profile?.full_name : appointment.psychologists?.profiles?.full_name
+  )
 
   return (
     <VideoRoom

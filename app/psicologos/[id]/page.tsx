@@ -3,7 +3,7 @@ import { Star, BadgeCheck, Check } from 'lucide-react'
 import Header from '@/components/Header'
 import BookingCalendar from '@/components/BookingCalendar'
 import { createClient } from '@/lib/supabase/server'
-import { formatarPreco } from '@/lib/utils'
+import { formatarPreco, capitalizarNome } from '@/lib/utils'
 import { DURACAO_SESSAO_MINUTOS, type Psychologist } from '@/lib/types'
 
 export default async function PsicologoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +21,7 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
 
   const psicologo = data as unknown as Psychologist
   const foto = psicologo.profiles?.avatar_url
+  const nome = capitalizarNome(psicologo.profiles?.full_name) || 'Psicólogo'
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -33,17 +34,22 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
               <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-medium text-2xl overflow-hidden flex-shrink-0">
                 {foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={foto} alt={psicologo.profiles?.full_name || ''} className="w-full h-full object-cover" />
+                  <img src={foto} alt={nome} className="w-full h-full object-cover" />
                 ) : (
-                  psicologo.profiles?.full_name?.[0] || 'P'
+                  nome[0]
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-medium text-slate-800 flex items-center gap-1.5">
-                  {psicologo.profiles?.full_name || 'Psicólogo'}
-                  <BadgeCheck className="w-5 h-5 text-teal-600" />
+                <h1 className="text-xl font-serif text-slate-800 flex items-center gap-1.5">
+                  {nome}
                 </h1>
-                <p className="text-sm text-slate-400">CRP {psicologo.crp_number}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="flex items-center gap-1 text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-medium">
+                    <BadgeCheck className="w-3.5 h-3.5" />
+                    CRP verificado
+                  </span>
+                  <span className="text-sm text-slate-400">{psicologo.crp_number}</span>
+                </div>
                 {psicologo.rating_count > 0 && (
                   <div className="flex items-center gap-1 text-sm text-amber-500 mt-1">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />

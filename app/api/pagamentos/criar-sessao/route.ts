@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { criarSessaoCheckout, stripeConfigurado, TAXA_PLATAFORMA } from '@/lib/stripe'
+import { capitalizarNome } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   if (!stripeConfigurado()) {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     const sessaoCheckout = await criarSessaoCheckout({
       appointmentId,
-      titulo: `Sessão de psicoterapia com ${appointment.psychologists?.profiles?.full_name || 'psicólogo(a)'}`,
+      titulo: `Sessão de psicoterapia com ${capitalizarNome(appointment.psychologists?.profiles?.full_name) || 'psicólogo(a)'}`,
       preco,
       emailPagador: user.email,
       siteUrl,

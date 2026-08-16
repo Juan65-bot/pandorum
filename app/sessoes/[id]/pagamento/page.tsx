@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { CreditCard, QrCode, CheckCircle2, Loader2 } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
-import { formatarDataHora, formatarPreco } from '@/lib/utils'
+import { formatarDataHora, formatarPreco, capitalizarNome } from '@/lib/utils'
 import type { Appointment } from '@/lib/types'
 
 function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
@@ -91,7 +91,7 @@ function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
           <p className="text-sm text-slate-500 mb-1">Sessão com</p>
-          <p className="font-medium text-slate-800 mb-3">{appointment.psychologists?.profiles?.full_name}</p>
+          <p className="font-medium text-slate-800 mb-3">{capitalizarNome(appointment.psychologists?.profiles?.full_name)}</p>
           <p className="text-sm text-slate-500 mb-1">Data e horário</p>
           <p className="font-medium text-slate-800 mb-3">{formatarDataHora(appointment.starts_at)}</p>
           <p className="text-sm text-slate-500 mb-1">Valor</p>

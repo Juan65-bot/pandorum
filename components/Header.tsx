@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LogOut, ArrowLeft } from 'lucide-react'
 import { useSession } from '@/lib/hooks/useSession'
+import { capitalizarNome } from '@/lib/utils'
 
 interface HeaderProps {
   backHref?: string
@@ -31,12 +32,16 @@ export default function Header({ backHref, backLabel = 'Voltar' }: HeaderProps) 
         </Link>
       ) : loading ? null : user ? (
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 text-sm text-slate-500">
-            {profile?.avatar_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
-            )}
-            Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}
+          <span className="flex items-center gap-2.5 text-sm text-slate-600">
+            <span className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-medium text-xs overflow-hidden flex-shrink-0">
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                capitalizarNome(profile?.full_name)[0] || 'U'
+              )}
+            </span>
+            Olá, {capitalizarNome(profile?.full_name).split(' ')[0] || 'Usuário'}
           </span>
           <button
             onClick={handleLogout}

@@ -27,3 +27,19 @@ export function formatarHora(data: string | Date) {
 export function formatarDataHora(data: string | Date) {
   return `${formatarData(data)} às ${formatarHora(data)}`
 }
+
+const CONECTIVOS_MINUSCULOS = new Set(['de', 'da', 'do', 'das', 'dos', 'e'])
+
+/** Corrige a capitalização de nomes próprios em português (ex: "isa silva" -> "Isa Silva"). */
+export function capitalizarNome(nome: string | null | undefined): string {
+  if (!nome) return ''
+  return nome
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((palavra, i) => {
+      if (i > 0 && CONECTIVOS_MINUSCULOS.has(palavra)) return palavra
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1)
+    })
+    .join(' ')
+}

@@ -32,7 +32,7 @@ export default function RegisterPage() {
   async function onSubmit(dados: RegisterInput) {
     setErro('')
 
-    const proximaRota = dados.tipo === 'psychologist' ? '/psicologo/completar-perfil' : '/dashboard'
+    const proximaRota = dados.tipo === 'psychologist' ? '/psicologo/termos' : '/dashboard'
 
     const { data, error } = await supabase.auth.signUp({
       email: dados.email,
@@ -57,11 +57,7 @@ export default function RegisterPage() {
       await ensureProfile(supabase, data.user)
     }
 
-    if (dados.tipo === 'psychologist') {
-      router.push('/psicologo/completar-perfil')
-    } else {
-      router.push('/dashboard')
-    }
+    router.push(proximaRota)
   }
 
   return (

@@ -11,8 +11,8 @@ export function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY)
 }
 
-/** Comissão da plataforma sobre cada sessão paga. */
-export const TAXA_PLATAFORMA = 0.15
+/** Comissão da plataforma sobre cada sessão paga (ver termos de aceite do psicólogo). */
+export const TAXA_PLATAFORMA = 0.2
 
 interface CriarCheckoutParams {
   appointmentId: string

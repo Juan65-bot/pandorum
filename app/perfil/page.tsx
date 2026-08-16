@@ -8,6 +8,7 @@ import AvatarUpload from '@/components/AvatarUpload'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { patientProfileSchema, type PatientProfileInput } from '@/lib/validation'
+import { capitalizarNome } from '@/lib/utils'
 import type { Profile } from '@/lib/types'
 
 export default function PerfilPage() {
@@ -121,7 +122,7 @@ export default function PerfilPage() {
             <label className="text-sm font-medium text-slate-700 block mb-1">Nome completo</label>
             <input
               type="text"
-              value={profile?.full_name || ''}
+              value={capitalizarNome(profile?.full_name)}
               disabled
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-400"
             />

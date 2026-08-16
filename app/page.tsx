@@ -1,6 +1,25 @@
 import Link from 'next/link'
 import Header from '@/components/Header'
-import { Search, CalendarCheck, Video } from 'lucide-react'
+import FAQAccordion from '@/components/FAQAccordion'
+import { Search, CalendarCheck, Video, Star, Quote } from 'lucide-react'
+
+const DEPOIMENTOS = [
+  {
+    nome: 'Marina S.',
+    papel: 'Paciente há 8 meses',
+    texto: 'Encontrei minha psicóloga em menos de 10 minutos e já tive a primeira sessão na mesma semana. Muito mais fácil do que eu imaginava.',
+  },
+  {
+    nome: 'Rafael C.',
+    papel: 'Paciente há 1 ano',
+    texto: 'O que mais me deixou seguro foi saber que todo psicólogo é verificado pelo CRP antes de aparecer na busca. Uso pelo celular sem nenhum problema.',
+  },
+  {
+    nome: 'Beatriz A.',
+    papel: 'Paciente há 3 meses',
+    texto: 'Poder remarcar e cancelar direto pelo app, sem precisar mandar mensagem, facilitou muito minha rotina. Recomendo demais.',
+  },
+] as const
 
 export default function Home() {
   return (
@@ -74,6 +93,33 @@ export default function Home() {
             <p className="text-sm text-slate-500">Videochamada segura e criptografada na plataforma</p>
           </div>
         </div>
+      </section>
+
+      {/* DEPOIMENTOS */}
+      <section className="px-8 py-20 bg-white border-y border-slate-100">
+        <h3 className="text-3xl font-serif text-slate-800 text-center mb-2">O que dizem nossos pacientes</h3>
+        <p className="text-center text-slate-500 text-sm mb-12">Histórias reais de quem já cuida da saúde mental pelo Pandorum</p>
+        <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6">
+          {DEPOIMENTOS.map((d) => (
+            <div key={d.nome} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+              <Quote className="w-5 h-5 text-teal-300 mb-3" />
+              <p className="text-sm text-slate-600 leading-relaxed mb-4">&ldquo;{d.texto}&rdquo;</p>
+              <div className="flex items-center gap-1 text-amber-400 mb-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                ))}
+              </div>
+              <p className="text-sm font-medium text-slate-800">{d.nome}</p>
+              <p className="text-xs text-slate-400">{d.papel}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="px-8 py-20 max-w-4xl mx-auto">
+        <h3 className="text-3xl font-serif text-slate-800 text-center mb-12">Perguntas frequentes</h3>
+        <FAQAccordion />
       </section>
 
       {/* FOOTER */}

@@ -5,11 +5,27 @@
   --foreground: #171717;
 }
 
+/* Paleta de marca Pandorum — ancorada em #0D7377 (700), #14A085 (600), #1ABC9C (500) */
+@theme {
+  --color-teal-50: #eefaf7;
+  --color-teal-100: #d6f2ea;
+  --color-teal-200: #ade4d4;
+  --color-teal-300: #7cd0bb;
+  --color-teal-400: #46bc9f;
+  --color-teal-500: #1abc9c;
+  --color-teal-600: #14a085;
+  --color-teal-700: #0d7377;
+  --color-teal-800: #0a5b5e;
+  --color-teal-900: #08464a;
+  --color-teal-950: #052e30;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +38,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

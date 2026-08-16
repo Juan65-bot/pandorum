@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Calendar, Video, CreditCard, X, Star, NotebookPen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { formatarDataHora, formatarPreco, cn } from '@/lib/utils'
+import { formatarDataHora, formatarPreco, capitalizarNome, cn } from '@/lib/utils'
 import { podeEntrarNaSala } from '@/lib/scheduling'
 import type { Appointment, Role } from '@/lib/types'
 
@@ -37,8 +37,9 @@ export default function SessionCard({
   const [mostrarNotas, setMostrarNotas] = useState(false)
   const supabase = createClient()
 
-  const outraParte =
+  const outraParte = capitalizarNome(
     role === 'psychologist' ? appointment.patients_profile?.full_name : appointment.psychologists?.profiles?.full_name
+  )
 
   const futura = new Date(appointment.starts_at) > new Date()
   const podeEntrar = appointment.status === 'confirmed' && podeEntrarNaSala(appointment.starts_at, appointment.ends_at)

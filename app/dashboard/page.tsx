@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Calendar, User, ShieldCheck, BadgeCheck, Clock } from 'lucide-react'
+import { Search, Calendar, User, ShieldCheck, BadgeCheck, Clock, Video, CreditCard, ArrowRight } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
-import { formatarDataHora } from '@/lib/utils'
+import { formatarDataHora, capitalizarNome, cn } from '@/lib/utils'
+import { podeEntrarNaSala } from '@/lib/scheduling'
 import type { Appointment, Profile, Role } from '@/lib/types'
 
 export default function DashboardPage() {
@@ -75,24 +76,38 @@ export default function DashboardPage() {
   }
 
   const role: Role = profile?.role || 'patient'
-  const outraParte = role === 'psychologist' ? proxima?.patients_profile?.full_name : proxima?.psychologists?.profiles?.full_name
+  const nomeCompleto = capitalizarNome(profile?.full_name) || 'Usuário'
+  const outraParte = capitalizarNome(
+    role === 'psychologist' ? proxima?.patients_profile?.full_name : proxima?.psychologists?.profiles?.full_name
+  )
+  const fotoOutraParte = role === 'psychologist' ? proxima?.patients_profile?.avatar_url : proxima?.psychologists?.profiles?.avatar_url
 
   return (
     <main className="min-h-screen bg-slate-50">
       <Header />
 
       <div className="max-w-4xl mx-auto px-8 py-10">
-        <div className="bg-teal-700 rounded-2xl p-6 text-white mb-8">
-          <h2 className="text-2xl font-serif mb-1">
-            Bem-vindo, {profile?.full_name?.split(' ')[0] || 'Usuário'}!
-          </h2>
-          <p className="text-teal-100 text-sm">
-            {role === 'psychologist'
-              ? 'Gerencie seu perfil, horários e sessões com pacientes.'
-              : role === 'admin'
-              ? 'Acompanhe a operação da plataforma Pandorum.'
-              : 'Sua plataforma de saúde mental está pronta para você.'}
-          </p>
+        <div className="bg-teal-700 rounded-2xl p-6 text-white mb-8 flex items-center gap-4">
+          <span className="w-14 h-14 rounded-full bg-teal-600 flex items-center justify-center text-xl font-serif overflow-hidden flex-shrink-0 border-2 border-teal-400">
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              nomeCompleto[0]
+            )}
+          </span>
+          <div>
+            <h2 className="text-2xl font-serif mb-1">
+              Bem-vindo, {nomeCompleto.split(' ')[0]}!
+            </h2>
+            <p className="text-teal-100 text-sm">
+              {role === 'psychologist'
+                ? 'Gerencie seu perfil, horários e sessões com pacientes.'
+                : role === 'admin'
+                ? 'Acompanhe a operação da plataforma Pandorum.'
+                : 'Sua plataforma de saúde mental está pronta para você.'}
+            </p>
+          </div>
         </div>
 
         {role === 'psychologist' && statusPsicologo === null && (
@@ -115,24 +130,78 @@ export default function DashboardPage() {
         )}
 
         {role !== 'admin' && (
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <div className="text-3xl font-serif text-slate-800">{realizadas}</div>
-              <div className="text-sm text-slate-500 mt-1">Sessões realizadas</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <div className="text-3xl font-serif text-slate-800">{agendadas}</div>
-              <div className="text-sm text-slate-500 mt-1">Sessões agendadas</div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <div className="text-lg font-serif text-slate-800">
-                {proxima ? formatarDataHora(proxima.starts_at) : '—'}
+          <>
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div className="text-3xl font-serif text-slate-800">{realizadas}</div>
+                <div className="text-sm text-slate-500 mt-1">Sessões realizadas</div>
               </div>
-              <div className="text-sm text-slate-500 mt-1">
-                {proxima ? `Próxima sessão com ${outraParte || ''}` : 'Próxima sessão'}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div className="text-3xl font-serif text-slate-800">{agendadas}</div>
+                <div className="text-sm text-slate-500 mt-1">Sessões agendadas</div>
               </div>
             </div>
-          </div>
+
+            {/* PRÓXIMA SESSÃO EM DESTAQUE */}
+            {proxima ? (
+              <div className="rounded-2xl p-6 mb-8 bg-gradient-to-br from-teal-700 to-teal-800 text-white shadow-md flex items-center justify-between gap-6">
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center text-lg font-serif overflow-hidden flex-shrink-0 border-2 border-white/30">
+                    {fotoOutraParte ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fotoOutraParte} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      outraParte[0] || '?'
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-teal-200 mb-0.5">Próxima sessão</p>
+                    <p className="font-serif text-lg truncate">{outraParte || 'Sessão agendada'}</p>
+                    <p className="text-sm text-teal-100">{formatarDataHora(proxima.starts_at)}</p>
+                  </div>
+                </div>
+
+                {proxima.status === 'confirmed' ? (
+                  <Link
+                    href={`/sessoes/${proxima.id}/sala`}
+                    className={cn(
+                      'flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium flex-shrink-0 whitespace-nowrap',
+                      podeEntrarNaSala(proxima.starts_at, proxima.ends_at)
+                        ? 'bg-white text-teal-700 hover:bg-teal-50'
+                        : 'bg-white/15 text-white/70 pointer-events-none'
+                    )}
+                  >
+                    <Video className="w-4 h-4" />
+                    Entrar na sessão
+                  </Link>
+                ) : role === 'patient' ? (
+                  <Link
+                    href={`/sessoes/${proxima.id}/pagamento`}
+                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium bg-white text-teal-700 hover:bg-teal-50 flex-shrink-0 whitespace-nowrap"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Pagar agora
+                  </Link>
+                ) : (
+                  <span className="text-xs text-teal-200 flex-shrink-0">Aguardando pagamento</span>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-2xl p-6 mb-8 bg-white border border-dashed border-slate-200 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-slate-700 mb-1">Nenhuma sessão agendada</p>
+                  <p className="text-sm text-slate-400">
+                    {role === 'psychologist' ? 'Suas próximas sessões vão aparecer aqui.' : 'Que tal agendar sua próxima sessão?'}
+                  </p>
+                </div>
+                {role === 'patient' && (
+                  <Link href="/psicologos" className="flex items-center gap-1.5 text-sm text-teal-700 font-medium hover:underline flex-shrink-0">
+                    Buscar psicólogo <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         <div className="grid grid-cols-2 gap-6">
@@ -172,6 +241,14 @@ export default function DashboardPage() {
                 descricao="CRP, especialidades, valor e horários de atendimento"
                 href="/psicologo/completar-perfil"
                 cta="Gerenciar perfil"
+              />
+              <AcaoCard
+                icone={<User className="w-5 h-5" />}
+                titulo="Meus pacientes"
+                descricao="Veja quem você já atendeu e o histórico de cada um"
+                href="/psicologo/pacientes"
+                cta="Ver pacientes"
+                secundario
               />
               <AcaoCard
                 icone={<Calendar className="w-5 h-5" />}

@@ -24,7 +24,7 @@ npm install
 - `STRIPE_WEBHOOK_SECRET` — gerada ao criar o endpoint de webhook (veja abaixo).
 - `NEXT_PUBLIC_SITE_URL` — URL pública do site (`http://localhost:3000` em dev).
 
-3. Rode as migrations no Supabase (SQL Editor do Dashboard, na ordem dos arquivos em `supabase/migrations/`, ou via `supabase db push` com o CLI logado e o projeto linkado). Elas só criam políticas de RLS, funções e índices — nenhuma tabela é criada, pois o schema (`profiles`, `patients`, `psychologists`, `availability_slots`, `appointments`, `payments`, `reviews`, `session_notes`) já existe no projeto Supabase.
+3. Rode as migrations no Supabase: cole o conteúdo de `supabase/APLICAR_NO_SQL_EDITOR.sql` no SQL Editor do Dashboard e execute (ou rode os arquivos de `supabase/migrations/` em ordem, ou via `supabase db push` com o CLI logado e o projeto linkado). Elas criam o trigger que preenche `profiles` no cadastro, os grants da `service_role`, políticas de RLS, funções e índices — nenhuma tabela nova é criada, pois o schema (`profiles`, `patients`, `psychologists`, `availability_slots`, `appointments`, `payments`, `reviews`, `session_notes`) já existe no projeto Supabase. **Sem rodar isso, cadastro de usuário fica quebrado** (ver "Pontos de atenção" abaixo).
 
 4. Configure o webhook do Stripe apontando para `https://SEU_DOMINIO/api/pagamentos/webhook`, assinando os eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` e `checkout.session.expired`. Em desenvolvimento, use `stripe listen --forward-to localhost:3000/api/pagamentos/webhook`.
 
@@ -66,5 +66,6 @@ A sala de sessão usa WebRTC ponto-a-ponto, com sinalização via Supabase Realt
 ## Pontos de atenção antes de produção
 
 - `session_notes.content_encrypted` guarda hoje texto simples — o nome da coluna indica que as anotações clínicas deveriam ser criptografadas em repouso. Implemente criptografia (ex.: `pgsodium`/`pgcrypto` com gestão de chave adequada) antes de armazenar dados clínicos reais.
-- A comissão da plataforma (15%) está fixa em `lib/stripe.ts` (`TAXA_PLATAFORMA`) — ajuste conforme o modelo de negócio.
+- A comissão da plataforma (20%, conforme o contrato aceito pelo psicólogo em `/psicologo/termos`) está fixa em `lib/stripe.ts` (`TAXA_PLATAFORMA`) — se o valor mudar, atualize os dois lugares juntos.
+- O contrato em `/psicologo/termos` é um texto padrão gerado para o produto — recomendamos revisão por um advogado antes de valer como termo vinculante em produção.
 - Não há repasse automático (payout) para os psicólogos via Stripe Connect — os campos `psy_payout`/`platform_fee` são calculados e registrados, mas o repasse em si precisa ser implementado (Stripe Connect ou processo manual).

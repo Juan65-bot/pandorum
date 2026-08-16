@@ -50,6 +50,10 @@ export default function CompletarPerfilPsicologoPage() {
         router.push('/dashboard')
         return
       }
+      if (!user.user_metadata?.terms_accepted_at) {
+        router.push('/psicologo/termos')
+        return
+      }
       setFotoUrl(profile.avatar_url)
 
       const { data: psi } = await supabase

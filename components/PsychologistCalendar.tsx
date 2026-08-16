@@ -3,11 +3,12 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
+import { capitalizarNome } from '@/lib/utils'
 import type { Appointment } from '@/lib/types'
 
 const CORES: Record<string, string> = {
   scheduled: '#f59e0b',
-  confirmed: '#0f766e',
+  confirmed: '#0d7377',
   completed: '#94a3b8',
   cancelled: '#ef4444',
 }
@@ -15,10 +16,10 @@ const CORES: Record<string, string> = {
 export default function PsychologistCalendar({ appointments }: { appointments: Appointment[] }) {
   const eventos = appointments.map((a) => ({
     id: a.id,
-    title: a.patients_profile?.full_name || 'Paciente',
+    title: capitalizarNome(a.patients_profile?.full_name) || 'Paciente',
     start: a.starts_at,
     end: a.ends_at,
-    color: CORES[a.status] || '#0f766e',
+    color: CORES[a.status] || '#0d7377',
   }))
 
   return (
