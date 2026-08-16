@@ -14,7 +14,7 @@ function LoginForm() {
   const supabase = createClient()
 
   const confirmacaoPendente = searchParams.get('confirmacao') === '1'
-  const proximaRota = searchParams.get('next') || '/dashboard'
+  const proximaRotaExplicita = searchParams.get('next')
 
   const {
     register,
@@ -25,14 +25,25 @@ function LoginForm() {
   async function onSubmit(dados: LoginInput) {
     setErro('')
 
-    const { error } = await supabase.auth.signInWithPassword(dados)
+    const { data, error } = await supabase.auth.signInWithPassword(dados)
 
     if (error) {
       setErro('E-mail ou senha incorretos')
       return
     }
 
-    router.push(proximaRota)
+    if (proximaRotaExplicita) {
+      router.push(proximaRotaExplicita)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .maybeSingle()
+
+    router.push(profile?.role === 'psychologist' ? '/psicologo/dashboard' : '/dashboard')
   }
 
   return (
