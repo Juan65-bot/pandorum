@@ -13,6 +13,29 @@ import { psychologistProfileSchema, type PsychologistProfileInput } from '@/lib/
 import { ESPECIALIDADES, ABORDAGENS, PRECO_SESSAO_PADRAO, type PsychologistStatus } from '@/lib/types'
 import { cn, formatarPreco } from '@/lib/utils'
 
+interface ErroSupabase {
+  code?: string
+  message?: string
+}
+
+/** Traduz os erros mais comuns do Postgres/PostgREST para algo que o psicólogo entenda. */
+function mensagemDeErro(error: ErroSupabase): string {
+  console.error('Erro ao salvar perfil do psicólogo:', error)
+
+  if (error.code === '23505') {
+    if (error.message?.includes('crp_number')) {
+      return 'Esse número de CRP já está cadastrado em outra conta. Verifique se digitou corretamente.'
+    }
+    return 'Alguma informação já está cadastrada em outra conta.'
+  }
+
+  if (error.code === '42501') {
+    return 'Você não tem permissão para salvar esse perfil. Faça login novamente e tente de novo.'
+  }
+
+  return 'Não foi possível salvar seu perfil. Tente novamente em instantes.'
+}
+
 export default function CompletarPerfilPsicologoPage() {
   const [userId, setUserId] = useState('')
   const [psychologistId, setPsychologistId] = useState('')
@@ -107,10 +130,10 @@ export default function CompletarPerfilPsicologoPage() {
 
     if (psychologistId) {
       const { error } = await supabase.from('psychologists').update(payload).eq('id', psychologistId)
-      if (error) { setErro('Não foi possível salvar seu perfil'); return }
+      if (error) { setErro(mensagemDeErro(error)); return }
     } else {
       const { data, error } = await supabase.from('psychologists').insert(payload).select().single()
-      if (error) { setErro('Não foi possível salvar seu perfil'); return }
+      if (error) { setErro(mensagemDeErro(error)); return }
       setPsychologistId(data.id)
       setStatus(data.status)
     }

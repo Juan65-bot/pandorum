@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { FileCheck, ShieldCheck, Percent, HeartHandshake } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 
 const VERSAO_TERMOS = '1.0'
 
@@ -20,7 +21,7 @@ export default function TermosPsicologoPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth/login'); return }
 
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      const profile = await ensureProfile(supabase, user)
       if (profile?.role !== 'psychologist') {
         router.push('/dashboard')
         return

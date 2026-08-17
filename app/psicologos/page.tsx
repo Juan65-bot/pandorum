@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, BadgeCheck, Star, SlidersHorizontal, X } from 'lucide-react'
+import { Search, BadgeCheck, Star, SlidersHorizontal, X, AlertTriangle } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 import { formatarPreco, capitalizarNome, cn } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { ESPECIALIDADES, PRECO_SESSAO_PADRAO, type Psychologist } from '@/lib/ty
 export default function PsicologosPage() {
   const [psicologos, setPsicologos] = useState<Psychologist[]>([])
   const [loading, setLoading] = useState(true)
+  const [erroCarregamento, setErroCarregamento] = useState(false)
   const [busca, setBusca] = useState('')
   const [especialidadeFiltro, setEspecialidadeFiltro] = useState<string | null>(null)
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
@@ -17,13 +18,28 @@ export default function PsicologosPage() {
 
   useEffect(() => {
     async function getPsicologos() {
-      const { data } = await supabase
+      const { data, error, count } = await supabase
         .from('psychologists')
-        .select('*, profiles!profile_id(*)')
+        .select('*, profiles!profile_id(*)', { count: 'exact' })
         .eq('status', 'approved')
         .order('rating_avg', { ascending: false })
 
-      setPsicologos((data as unknown as Psychologist[]) || [])
+      if (error) {
+        // não deixa o erro passar em silêncio: sem isso, uma falha na query
+        // (ex.: RLS mal configurado, embed ambíguo) parecia "nenhum psicólogo
+        // encontrado" em vez de mostrar que a busca falhou de verdade.
+        console.error('Falha ao carregar psicólogos aprovados:', error)
+        setErroCarregamento(true)
+        setLoading(false)
+        return
+      }
+
+      const lista = (data as unknown as Psychologist[]) || []
+      if (count !== null && count !== lista.length) {
+        console.warn(`get psicologos: banco reporta ${count} aprovados mas a query retornou ${lista.length}`)
+      }
+
+      setPsicologos(lista)
       setLoading(false)
     }
     getPsicologos()
@@ -115,6 +131,11 @@ export default function PsicologosPage() {
 
         {loading ? (
           <p className="text-center text-slate-400 text-sm">Carregando...</p>
+        ) : erroCarregamento ? (
+          <div className="flex flex-col items-center gap-2 text-center py-20">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <p className="text-slate-500 text-sm">Não foi possível carregar a lista de psicólogos agora. Tente recarregar a página.</p>
+          </div>
         ) : filtrados.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-slate-400 text-sm">Nenhum psicólogo encontrado com esses filtros.</p>

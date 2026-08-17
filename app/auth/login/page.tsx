@@ -3,6 +3,7 @@ import { Suspense, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { ensureProfile } from '@/lib/ensureProfile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { loginSchema, type LoginInput } from '@/lib/validation'
@@ -37,11 +38,7 @@ function LoginForm() {
       return
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .maybeSingle()
+    const profile = await ensureProfile(supabase, data.user)
 
     router.push(profile?.role === 'psychologist' ? '/psicologo/dashboard' : '/dashboard')
   }
