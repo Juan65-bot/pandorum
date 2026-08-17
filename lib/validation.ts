@@ -43,9 +43,5 @@ export const psychologistProfileSchema = z.object({
   specialties: z.array(z.string()).min(1, 'Selecione ao menos uma especialidade'),
   approaches: z.array(z.string()).min(1, 'Selecione ao menos uma abordagem'),
   bio: z.string().min(20, 'Escreva uma bio com pelo menos 20 caracteres').max(1000),
-  session_price: z
-    .string()
-    .min(1, 'Informe um valor de sessão')
-    .refine((v) => Number(v) > 0, 'Informe um valor de sessão válido'),
 })
 export type PsychologistProfileInput = z.infer<typeof psychologistProfileSchema>

@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { criarSessaoCheckout, stripeConfigurado, TAXA_PLATAFORMA } from '@/lib/stripe'
 import { capitalizarNome } from '@/lib/utils'
+import { PRECO_SESSAO_PADRAO } from '@/lib/types'
 
 export async function POST(request: NextRequest) {
   if (!stripeConfigurado()) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('*, psychologists(session_price, profiles!profile_id(full_name))')
+    .select('*, psychologists(profiles!profile_id(full_name))')
     .eq('id', appointmentId)
     .single()
 
@@ -37,10 +38,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Essa sessão não está aguardando pagamento' }, { status: 400 })
   }
 
-  const preco = Number(appointment.psychologists?.session_price || 0)
-  if (preco <= 0) {
-    return NextResponse.json({ error: 'Valor de sessão inválido' }, { status: 400 })
-  }
+  // valor fixo definido pela plataforma — não é lido do perfil do psicólogo
+  const preco = PRECO_SESSAO_PADRAO
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
 

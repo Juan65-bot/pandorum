@@ -4,7 +4,7 @@ import Header from '@/components/Header'
 import BookingCalendar from '@/components/BookingCalendar'
 import { createClient } from '@/lib/supabase/server'
 import { formatarPreco, capitalizarNome } from '@/lib/utils'
-import { DURACAO_SESSAO_MINUTOS, type Psychologist } from '@/lib/types'
+import { DURACAO_SESSAO_MINUTOS, PRECO_SESSAO_PADRAO, type Psychologist } from '@/lib/types'
 
 export default async function PsicologoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -84,14 +84,14 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <h2 className="font-medium text-slate-800 mb-4">Agendar sessão</h2>
-            <BookingCalendar psychologistId={psicologo.id} sessionPrice={psicologo.session_price || 0} />
+            <BookingCalendar psychologistId={psicologo.id} sessionPrice={PRECO_SESSAO_PADRAO} />
           </div>
         </div>
 
         <aside>
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 sticky top-6">
             <div className="text-2xl font-serif text-slate-800 mb-1">
-              {psicologo.session_price ? formatarPreco(psicologo.session_price) : '—'}
+              {formatarPreco(PRECO_SESSAO_PADRAO)}
             </div>
             <p className="text-xs text-slate-400 mb-4">por sessão de {DURACAO_SESSAO_MINUTOS} minutos</p>
             <ul className="text-xs text-slate-500 space-y-2">

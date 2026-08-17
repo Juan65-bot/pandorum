@@ -5,21 +5,13 @@ import { Search, BadgeCheck, Star, SlidersHorizontal, X } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 import { formatarPreco, capitalizarNome, cn } from '@/lib/utils'
-import { ESPECIALIDADES, type Psychologist } from '@/lib/types'
-
-const FAIXAS_PRECO = [
-  { label: 'Qualquer valor', min: 0, max: Infinity },
-  { label: 'Até R$ 100', min: 0, max: 100 },
-  { label: 'R$ 100 – R$ 200', min: 100, max: 200 },
-  { label: 'Acima de R$ 200', min: 200, max: Infinity },
-] as const
+import { ESPECIALIDADES, PRECO_SESSAO_PADRAO, type Psychologist } from '@/lib/types'
 
 export default function PsicologosPage() {
   const [psicologos, setPsicologos] = useState<Psychologist[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
   const [especialidadeFiltro, setEspecialidadeFiltro] = useState<string | null>(null)
-  const [faixaPreco, setFaixaPreco] = useState<(typeof FAIXAS_PRECO)[number]>(FAIXAS_PRECO[0])
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const supabase = createClient()
 
@@ -48,18 +40,14 @@ export default function PsicologosPage() {
 
       const bateEspecialidade = !especialidadeFiltro || p.specialties?.includes(especialidadeFiltro)
 
-      const preco = p.session_price || 0
-      const batePreco = preco >= faixaPreco.min && preco < faixaPreco.max
-
-      return bateBusca && bateEspecialidade && batePreco
+      return bateBusca && bateEspecialidade
     })
-  }, [psicologos, busca, especialidadeFiltro, faixaPreco])
+  }, [psicologos, busca, especialidadeFiltro])
 
-  const filtrosAtivos = especialidadeFiltro !== null || faixaPreco.label !== FAIXAS_PRECO[0].label
+  const filtrosAtivos = especialidadeFiltro !== null
 
   function limparFiltros() {
     setEspecialidadeFiltro(null)
-    setFaixaPreco(FAIXAS_PRECO[0])
   }
 
   return (
@@ -96,44 +84,23 @@ export default function PsicologosPage() {
         </div>
 
         {mostrarFiltros && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-3 space-y-4">
-            <div>
-              <p className="text-xs font-medium text-slate-600 mb-2">Especialidade</p>
-              <div className="flex flex-wrap gap-2">
-                {ESPECIALIDADES.map((esp) => (
-                  <button
-                    key={esp}
-                    onClick={() => setEspecialidadeFiltro((atual) => (atual === esp ? null : esp))}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                      especialidadeFiltro === esp
-                        ? 'bg-teal-700 text-white border-teal-700'
-                        : 'border-slate-200 text-slate-600 hover:border-teal-300'
-                    )}
-                  >
-                    {esp}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-600 mb-2">Faixa de preço</p>
-              <div className="flex flex-wrap gap-2">
-                {FAIXAS_PRECO.map((faixa) => (
-                  <button
-                    key={faixa.label}
-                    onClick={() => setFaixaPreco(faixa)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                      faixaPreco.label === faixa.label
-                        ? 'bg-teal-700 text-white border-teal-700'
-                        : 'border-slate-200 text-slate-600 hover:border-teal-300'
-                    )}
-                  >
-                    {faixa.label}
-                  </button>
-                ))}
-              </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-3">
+            <p className="text-xs font-medium text-slate-600 mb-2">Especialidade</p>
+            <div className="flex flex-wrap gap-2">
+              {ESPECIALIDADES.map((esp) => (
+                <button
+                  key={esp}
+                  onClick={() => setEspecialidadeFiltro((atual) => (atual === esp ? null : esp))}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                    especialidadeFiltro === esp
+                      ? 'bg-teal-700 text-white border-teal-700'
+                      : 'border-slate-200 text-slate-600 hover:border-teal-300'
+                  )}
+                >
+                  {esp}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -201,7 +168,7 @@ export default function PsicologosPage() {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-800">
-                      {p.session_price ? formatarPreco(p.session_price) : '—'}/sessão
+                      {formatarPreco(PRECO_SESSAO_PADRAO)}/sessão
                     </span>
                     <span className="px-4 py-2 bg-teal-700 text-white text-xs rounded-full hover:bg-teal-800">
                       Ver perfil

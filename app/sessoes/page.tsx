@@ -8,7 +8,7 @@ import SessionCard from '@/components/SessionCard'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { cn } from '@/lib/utils'
-import type { Appointment, Role } from '@/lib/types'
+import { PRECO_SESSAO_PADRAO, type Appointment, type Role } from '@/lib/types'
 
 const PsychologistCalendar = dynamic(() => import('@/components/PsychologistCalendar'), { ssr: false })
 
@@ -103,7 +103,7 @@ export default function SessoesPage() {
                       key={a.id}
                       appointment={a}
                       role={role}
-                      precoSessao={a.psychologists?.session_price ?? undefined}
+                      precoSessao={PRECO_SESSAO_PADRAO}
                       onChange={carregar}
                     />
                   ))}
@@ -122,7 +122,7 @@ export default function SessoesPage() {
                       key={a.id}
                       appointment={a}
                       role={role}
-                      precoSessao={a.psychologists?.session_price ?? undefined}
+                      precoSessao={PRECO_SESSAO_PADRAO}
                       onChange={carregar}
                     />
                   ))}

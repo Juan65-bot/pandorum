@@ -6,7 +6,7 @@ import { CreditCard, QrCode, CheckCircle2, Loader2 } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 import { formatarDataHora, formatarPreco, capitalizarNome } from '@/lib/utils'
-import type { Appointment } from '@/lib/types'
+import { PRECO_SESSAO_PADRAO, type Appointment } from '@/lib/types'
 
 function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -80,7 +80,7 @@ function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
     )
   }
 
-  const preco = appointment.psychologists?.session_price || 0
+  const preco = PRECO_SESSAO_PADRAO
 
   return (
     <main className="min-h-screen bg-slate-50">

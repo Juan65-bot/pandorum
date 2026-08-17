@@ -3,15 +3,15 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, Clock, XCircle } from 'lucide-react'
+import { BadgeCheck, Clock, XCircle, Wallet } from 'lucide-react'
 import Header from '@/components/Header'
 import AvatarUpload from '@/components/AvatarUpload'
 import AvailabilityManager from '@/components/AvailabilityManager'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { psychologistProfileSchema, type PsychologistProfileInput } from '@/lib/validation'
-import { ESPECIALIDADES, ABORDAGENS, type PsychologistStatus } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { ESPECIALIDADES, ABORDAGENS, PRECO_SESSAO_PADRAO, type PsychologistStatus } from '@/lib/types'
+import { cn, formatarPreco } from '@/lib/utils'
 
 export default function CompletarPerfilPsicologoPage() {
   const [userId, setUserId] = useState('')
@@ -70,7 +70,6 @@ export default function CompletarPerfilPsicologoPage() {
           specialties: psi.specialties || [],
           approaches: psi.approaches || [],
           bio: psi.bio || '',
-          session_price: psi.session_price ? String(psi.session_price) : '',
         })
       }
 
@@ -103,7 +102,7 @@ export default function CompletarPerfilPsicologoPage() {
       specialties: dados.specialties,
       approaches: dados.approaches,
       bio: dados.bio,
-      session_price: Number(dados.session_price),
+      session_price: PRECO_SESSAO_PADRAO,
     }
 
     if (psychologistId) {
@@ -236,15 +235,11 @@ export default function CompletarPerfilPsicologoPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Valor da sessão (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="150.00"
-              {...register('session_price')}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-500"
-            />
-            {errors.session_price && <p className="text-xs text-red-600 mt-1">{errors.session_price.message}</p>}
+            <label className="text-sm font-medium text-slate-700 block mb-1">Valor da sessão</label>
+            <div className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-600">
+              <Wallet className="w-4 h-4 text-teal-600 flex-shrink-0" />
+              Valor da sessão: {formatarPreco(PRECO_SESSAO_PADRAO)} (definido pela plataforma)
+            </div>
             <p className="text-xs text-slate-400 mt-1">Sessões têm duração fixa de 50 minutos.</p>
           </div>
 

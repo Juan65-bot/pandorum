@@ -135,3 +135,6 @@ export const DIAS_SEMANA = [
 ] as const
 
 export const DURACAO_SESSAO_MINUTOS = 50
+
+/** Valor fixo por sessão, definido pela plataforma — psicólogos não podem alterar. */
+export const PRECO_SESSAO_PADRAO = 150
