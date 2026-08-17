@@ -174,6 +174,12 @@ export default function CompletarPerfilPsicologoPage() {
             Seu cadastro não foi aprovado. Revise seus dados ou entre em contato com o suporte.
           </div>
         )}
+        {status === 'suspended' && (
+          <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">
+            <XCircle className="w-4 h-4" />
+            Sua conta foi suspensa pela equipe Pandorum. Entre em contato com o suporte para mais informações.
+          </div>
+        )}
         {(status === 'pending' || status === null) && (
           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm">
             <Clock className="w-4 h-4" />

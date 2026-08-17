@@ -12,7 +12,7 @@ export function getStripe() {
 }
 
 /** Comissão da plataforma sobre cada sessão paga (ver termos de aceite do psicólogo). */
-export const TAXA_PLATAFORMA = 0.2
+export const TAXA_PLATAFORMA = 0.3
 
 interface CriarCheckoutParams {
   appointmentId: string

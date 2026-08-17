@@ -2,7 +2,7 @@
 -- PANDORUM — script único para colar no SQL Editor do Supabase e rodar de uma vez
 -- (https://supabase.com/dashboard/project/inutvjfdcuphazpgtdor/sql/new)
 --
--- Equivale a rodar, em ordem, os 6 arquivos de supabase/migrations/.
+-- Equivale a rodar, em ordem, os 7 arquivos de supabase/migrations/.
 -- 100% idempotente: pode rodar de novo sem quebrar nada.
 -- NÃO cria nem apaga nenhuma tabela — só grants, trigger de cadastro, RLS,
 -- policies, funções e o bucket de storage "avatars". O schema (profiles,
@@ -335,6 +335,12 @@ drop policy if exists "avatars_owner_delete" on storage.objects;
 create policy "avatars_owner_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ##################  0007_psychologist_suspended_status.sql  ##################
+-- Necessário para o botão "Suspender" no painel admin funcionar — sem isso o
+-- enum psy_status só aceita pending/approved/rejected.
+
+alter type public.psy_status add value if not exists 'suspended';
 
 -- ============================================================================
 -- Fim. Depois de rodar, confirme em Database > Tables que profiles, patients,

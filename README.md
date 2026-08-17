@@ -66,6 +66,6 @@ A sala de sessão usa WebRTC ponto-a-ponto, com sinalização via Supabase Realt
 ## Pontos de atenção antes de produção
 
 - `session_notes.content_encrypted` guarda hoje texto simples — o nome da coluna indica que as anotações clínicas deveriam ser criptografadas em repouso. Implemente criptografia (ex.: `pgsodium`/`pgcrypto` com gestão de chave adequada) antes de armazenar dados clínicos reais.
-- A comissão da plataforma (20%, conforme o contrato aceito pelo psicólogo em `/psicologo/termos`) está fixa em `lib/stripe.ts` (`TAXA_PLATAFORMA`) — se o valor mudar, atualize os dois lugares juntos.
+- A comissão da plataforma (30%, conforme o contrato aceito pelo psicólogo em `/psicologo/termos`) está fixa em `lib/stripe.ts` (`TAXA_PLATAFORMA`) — se o valor mudar, atualize os dois lugares juntos.
 - O contrato em `/psicologo/termos` é um texto padrão gerado para o produto — recomendamos revisão por um advogado antes de valer como termo vinculante em produção.
 - Não há repasse automático (payout) para os psicólogos via Stripe Connect — os campos `psy_payout`/`platform_fee` são calculados e registrados, mas o repasse em si precisa ser implementado (Stripe Connect ou processo manual).

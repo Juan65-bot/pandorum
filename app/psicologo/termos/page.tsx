@@ -115,9 +115,9 @@ export default function TermosPsicologoPage() {
             titulo="4. Comissão da plataforma"
           >
             <p>
-              O Pandorum retém uma comissão de <strong>20% (vinte por cento)</strong> sobre o valor de cada sessão paga
+              O Pandorum retém uma comissão de <strong>30% (trinta por cento)</strong> sobre o valor de cada sessão paga
               através da plataforma, referente a processamento de pagamento, divulgação do seu perfil e infraestrutura
-              da videochamada. O restante (80%) é repassado a você.
+              da videochamada. O restante (70%) é repassado a você.
             </p>
           </Secao>
         </div>
@@ -138,7 +138,7 @@ export default function TermosPsicologoPage() {
           />
           <span className="text-sm text-slate-600">
             Li e aceito os Termos de Uso, a Política de Privacidade, o consentimento para atendimento online e a
-            comissão de 20% da plataforma descritos acima.
+            comissão de 30% da plataforma descritos acima.
           </span>
         </label>
 

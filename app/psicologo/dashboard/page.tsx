@@ -168,6 +168,12 @@ export default function DashboardPsicologoPage() {
             Seu cadastro não foi aprovado. Revise seu perfil profissional.
           </div>
         )}
+        {statusPsicologo === 'suspended' && (
+          <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm mb-8">
+            <Clock className="w-4 h-4" />
+            Sua conta foi suspensa pela equipe Pandorum. Entre em contato com o suporte.
+          </div>
+        )}
 
         {/* STATS */}
         <div className="grid grid-cols-3 gap-6 mb-8">

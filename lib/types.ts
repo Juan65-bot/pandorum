@@ -20,7 +20,7 @@ export interface Patient {
   emergency_contact: Record<string, unknown> | null
 }
 
-export type PsychologistStatus = 'pending' | 'approved' | 'rejected'
+export type PsychologistStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 
 export interface Psychologist {
   id: string
