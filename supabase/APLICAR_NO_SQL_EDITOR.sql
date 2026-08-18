@@ -1,17 +1,35 @@
 -- ============================================================================
--- PANDORUM — script único para colar no SQL Editor do Supabase e rodar de uma vez
--- (https://supabase.com/dashboard/project/inutvjfdcuphazpgtdor/sql/new)
+-- PANDORUM — URGENTE: ativa o RLS (Row Level Security) em todas as tabelas.
+-- Cole este arquivo inteiro no SQL Editor do Supabase e rode de uma vez:
+-- https://supabase.com/dashboard/project/inutvjfdcuphazpgtdor/sql/new
+--
+-- Por que isso é urgente: hoje NENHUMA tabela tem RLS ativo. Isso significa que
+-- qualquer pessoa com a chave anônima (a mesma que o site usa no navegador,
+-- então é pública por definição) consegue ler e escrever diretamente em
+-- profiles, patients, psychologists, appointments, payments, reviews e
+-- session_notes — inclusive e-mails de todo mundo, dados clínicos de pacientes
+-- e o repasse financeiro de cada psicólogo. Confirmado nesta auditoria.
 --
 -- Equivale a rodar, em ordem, os 7 arquivos de supabase/migrations/.
 -- 100% idempotente: pode rodar de novo sem quebrar nada.
--- NÃO cria nem apaga nenhuma tabela — só grants, trigger de cadastro, RLS,
--- policies, funções e o bucket de storage "avatars". O schema (profiles,
--- patients, psychologists, availability_slots, appointments, payments,
--- reviews, session_notes) já existe.
+-- NÃO cria nem apaga nenhuma tabela — só grants, triggers, RLS, policies,
+-- funções e o bucket de storage "avatars". O schema (profiles, patients,
+-- psychologists, availability_slots, appointments, payments, reviews,
+-- session_notes) já existe.
 --
--- OS DOIS PRIMEIROS BLOCOS (grants + trigger de cadastro) SÃO CRÍTICOS:
--- sem eles, cadastro de usuário fica com o "profiles" vazio e qualquer
--- ação (completar perfil, agendar sessão, confirmar pagamento) falha.
+-- REGRAS DE ACESSO IMPLEMENTADAS:
+--   • paciente só vê/edita os próprios dados
+--   • psicólogo só vê os próprios dados + os pacientes vinculados a ele (via sessão)
+--   • admin tem acesso total a todas as tabelas
+--   • usuário não autenticado não acessa nada, com 3 exceções mínimas e
+--     deliberadas, exigidas pelo próprio produto: perfil público do psicólogo
+--     aprovado, seus horários de atendimento, e o bucket de fotos de perfil —
+--     sem isso a busca de psicólogos (/psicologos) não funciona sem login,
+--     o que quebraria o funil de cadastro. Detalhado nos comentários abaixo.
+--   • sessões (appointments) visíveis só para paciente e psicólogo envolvidos
+--   • dados financeiros (payments) visíveis só para admin e o psicólogo dono —
+--     o paciente NÃO lê o próprio payment (só acompanha pelo status da sessão),
+--     mas ainda precisa poder criar o registro 'pending' ao iniciar o checkout.
 -- ============================================================================
 
 
@@ -105,7 +123,7 @@ create policy "profiles_update_own" on public.profiles
   for update using (id = auth.uid());
 
 -- rede de segurança: permite que o próprio usuário crie seu profile se o
--- trigger on_auth_user_created falhar por algum motivo
+-- trigger on_auth_user_created (acima) falhar por algum motivo
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own" on public.profiles
   for insert with check (id = auth.uid());
@@ -116,6 +134,7 @@ create policy "profiles_admin_all" on public.profiles
     exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
   );
 
+-- psicólogo precisa ler o profile de quem reservou (nome/foto do paciente vinculado a ele)
 drop policy if exists "profiles_select_involved_in_appointment" on public.profiles;
 create policy "profiles_select_involved_in_appointment" on public.profiles
   for select using (
@@ -125,6 +144,9 @@ create policy "profiles_select_involved_in_appointment" on public.profiles
     )
   );
 
+-- ACESSO PÚBLICO (1/3): o profile de um psicólogo aprovado é público — nome/foto
+-- aparecem na busca (/psicologos) e na página do psicólogo, vistas sem login.
+-- Sem isso o marketplace não funciona: paciente precisa navegar antes de criar conta.
 drop policy if exists "profiles_select_approved_psychologist" on public.profiles;
 create policy "profiles_select_approved_psychologist" on public.profiles
   for select using (
@@ -136,6 +158,17 @@ drop policy if exists "patients_owner_all" on public.patients;
 create policy "patients_owner_all" on public.patients
   for all using (profile_id = auth.uid()) with check (profile_id = auth.uid());
 
+-- psicólogo lê os dados clínicos (data de nascimento, gênero, queixa) só de
+-- pacientes com quem tem pelo menos uma sessão — nunca de paciente nenhum vinculado.
+drop policy if exists "patients_select_linked_psychologist" on public.patients;
+create policy "patients_select_linked_psychologist" on public.patients
+  for select using (
+    profile_id in (
+      select patient_id from public.appointments
+      where psychologist_id in (select id from public.psychologists where profile_id = auth.uid())
+    )
+  );
+
 drop policy if exists "patients_admin_all" on public.patients;
 create policy "patients_admin_all" on public.patients
   for all using (
@@ -143,6 +176,8 @@ create policy "patients_admin_all" on public.patients
   );
 
 -- ========== PSYCHOLOGISTS ==========
+-- ACESSO PÚBLICO (2/3): perfil profissional (CRP, especialidades, bio, preço) só é
+-- público quando status = 'approved'. Pendente/rejeitado/suspenso só o dono e admin veem.
 drop policy if exists "psychologists_select_public" on public.psychologists;
 create policy "psychologists_select_public" on public.psychologists
   for select using (
@@ -160,6 +195,8 @@ create policy "psychologists_owner_update" on public.psychologists
   for update using (profile_id = auth.uid())
   with check (profile_id = auth.uid());
 
+-- psicólogo não pode se auto-aprovar via API: status/approved_at/approved_by
+-- só são alterados de fato quando quem edita é admin (ver trigger abaixo).
 create or replace function public.protect_psychologist_approval_fields()
 returns trigger as $$
 begin
@@ -184,6 +221,9 @@ create policy "psychologists_admin_all" on public.psychologists
   );
 
 -- ========== AVAILABILITY_SLOTS ==========
+-- ACESSO PÚBLICO (3/3): horários de atendimento precisam ser visíveis sem login —
+-- é o que a página do psicólogo mostra para o paciente escolher antes de agendar
+-- (só o agendamento em si exige login). Não expõe nenhum dado de paciente.
 drop policy if exists "availability_select_public" on public.availability_slots;
 create policy "availability_select_public" on public.availability_slots
   for select using (true);
@@ -196,7 +236,14 @@ create policy "availability_owner_write" on public.availability_slots
     psychologist_id in (select id from public.psychologists where profile_id = auth.uid())
   );
 
+drop policy if exists "availability_admin_all" on public.availability_slots;
+create policy "availability_admin_all" on public.availability_slots
+  for all using (
+    exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
+  );
+
 -- ========== APPOINTMENTS ==========
+-- visível só para o paciente e o psicólogo da sessão (+ admin)
 drop policy if exists "appointments_select_involved" on public.appointments;
 create policy "appointments_select_involved" on public.appointments
   for select using (
@@ -217,6 +264,13 @@ create policy "appointments_update_involved" on public.appointments
     or exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
   );
 
+drop policy if exists "appointments_admin_all" on public.appointments;
+create policy "appointments_admin_all" on public.appointments
+  for all using (
+    exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
+  );
+
+-- evita dois agendamentos ativos no mesmo horário para o mesmo psicólogo
 create unique index if not exists appointments_no_double_booking
   on public.appointments(psychologist_id, starts_at)
   where status in ('scheduled', 'confirmed');
@@ -225,20 +279,48 @@ create index if not exists appointments_patient_idx on public.appointments(patie
 create index if not exists appointments_psychologist_idx on public.appointments(psychologist_id);
 
 -- ========== PAYMENTS ==========
+-- dado financeiro: só admin e o psicólogo dono da sessão podem LER (o paciente
+-- não vê o repasse/comissão — ele acompanha o pagamento pelo status da sessão).
 drop policy if exists "payments_select_involved" on public.payments;
 create policy "payments_select_involved" on public.payments
   for select using (
-    patient_id = auth.uid()
-    or psychologist_id in (select id from public.psychologists where profile_id = auth.uid())
+    psychologist_id in (select id from public.psychologists where profile_id = auth.uid())
     or exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
+  );
+
+-- o paciente ainda precisa poder CRIAR o registro de pagamento da própria sessão ao
+-- iniciar o checkout (app/api/pagamentos/criar-sessao roda como o próprio paciente,
+-- não como service role) — mas só com status 'pending'; confirmar/rejeitar/reembolsar
+-- só acontece via webhook do Stripe, que usa a service role key e ignora RLS.
+drop policy if exists "payments_insert_patient_pending" on public.payments;
+create policy "payments_insert_patient_pending" on public.payments
+  for insert with check (patient_id = auth.uid() and status = 'pending');
+
+drop policy if exists "payments_update_patient_pending" on public.payments;
+create policy "payments_update_patient_pending" on public.payments
+  for update using (patient_id = auth.uid())
+  with check (patient_id = auth.uid() and status = 'pending');
+
+drop policy if exists "payments_admin_all" on public.payments;
+create policy "payments_admin_all" on public.payments
+  for all using (
+    exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
   );
 
 create unique index if not exists payments_appointment_idx on public.payments(appointment_id);
 
 -- ========== REVIEWS ==========
+-- avaliação não é pública: só quem escreveu, o psicólogo avaliado e o admin veem.
+-- (a média/contagem agregada em psychologists.rating_avg / rating_count essa sim é
+-- pública, porque psychologists_select_public libera leitura do psicólogo aprovado.)
 drop policy if exists "reviews_select_public" on public.reviews;
-create policy "reviews_select_public" on public.reviews
-  for select using (true);
+drop policy if exists "reviews_select_involved" on public.reviews;
+create policy "reviews_select_involved" on public.reviews
+  for select using (
+    patient_id = auth.uid()
+    or psychologist_id in (select id from public.psychologists where profile_id = auth.uid())
+    or exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
+  );
 
 drop policy if exists "reviews_insert_patient" on public.reviews;
 create policy "reviews_insert_patient" on public.reviews
@@ -249,7 +331,14 @@ create policy "reviews_insert_patient" on public.reviews
     )
   );
 
+drop policy if exists "reviews_admin_all" on public.reviews;
+create policy "reviews_admin_all" on public.reviews
+  for all using (
+    exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'admin')
+  );
+
 -- ========== SESSION_NOTES ==========
+-- anotações clínicas: só o psicólogo autor lê e escreve (não são compartilhadas com o paciente)
 drop policy if exists "session_notes_owner_all" on public.session_notes;
 create policy "session_notes_owner_all" on public.session_notes
   for all using (
@@ -336,6 +425,7 @@ create policy "avatars_owner_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
+
 -- ##################  0007_psychologist_suspended_status.sql  ##################
 -- Necessário para o botão "Suspender" no painel admin funcionar — sem isso o
 -- enum psy_status só aceita pending/approved/rejected.
@@ -345,6 +435,7 @@ alter type public.psy_status add value if not exists 'suspended';
 -- ============================================================================
 -- Fim. Depois de rodar, confirme em Database > Tables que profiles, patients,
 -- psychologists, appointments, payments, reviews e session_notes mostram o
--- cadeado de RLS ativado, e que seu próprio usuário (e o paciente de teste)
--- agora aparecem em Table Editor > profiles.
+-- cadeado de RLS ativado. Peça para o Claude testar em seguida — ele consegue
+-- verificar direto contra o banco (com a chave anônima) se cada regra está
+-- valendo, sem precisar de mais nenhuma ação sua além de avisar que rodou.
 -- ============================================================================

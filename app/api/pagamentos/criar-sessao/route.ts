@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const platformFee = Math.round(preco * TAXA_PLATAFORMA * 100) / 100
 
-    await supabase.from('payments').upsert(
+    const { error: erroPagamento } = await supabase.from('payments').upsert(
       {
         appointment_id: appointmentId,
         patient_id: user.id,
@@ -67,6 +67,14 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: 'appointment_id' }
     )
+
+    if (erroPagamento) {
+      // não redireciona pro Stripe se não conseguimos registrar o pagamento —
+      // o webhook faz UPDATE (não upsert) por appointment_id, então sem essa
+      // linha existindo a confirmação da sessão nunca aconteceria depois do pagamento.
+      console.error('Erro ao registrar payment pendente:', erroPagamento)
+      return NextResponse.json({ error: 'Não foi possível iniciar o pagamento' }, { status: 502 })
+    }
 
     return NextResponse.json({ checkout_url: sessaoCheckout.url })
   } catch {
