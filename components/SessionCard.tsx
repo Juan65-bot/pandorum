@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Calendar, Video, CreditCard, X, Star, NotebookPen } from 'lucide-react'
+import { Calendar, Video, CreditCard, X, Star, NotebookPen, CalendarClock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatarDataHora, formatarPreco, capitalizarNome, cn } from '@/lib/utils'
 import { podeEntrarNaSala } from '@/lib/scheduling'
+import RescheduleCalendar from '@/components/RescheduleCalendar'
 import type { Appointment, Role } from '@/lib/types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -35,6 +36,7 @@ export default function SessionCard({
   const [cancelando, setCancelando] = useState(false)
   const [mostrarAvaliacao, setMostrarAvaliacao] = useState(false)
   const [mostrarNotas, setMostrarNotas] = useState(false)
+  const [mostrarReagendar, setMostrarReagendar] = useState(false)
   const supabase = createClient()
 
   const outraParte = capitalizarNome(
@@ -118,6 +120,15 @@ export default function SessionCard({
         )}
         {podeCancelar && (
           <button
+            onClick={() => setMostrarReagendar((v) => !v)}
+            className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-xs rounded-full hover:bg-slate-50"
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            Reagendar
+          </button>
+        )}
+        {podeCancelar && (
+          <button
             onClick={cancelar}
             disabled={cancelando}
             className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-xs rounded-full hover:bg-red-50 disabled:opacity-50"
@@ -127,6 +138,16 @@ export default function SessionCard({
           </button>
         )}
       </div>
+
+      {mostrarReagendar && (
+        <RescheduleCalendar
+          appointmentId={appointment.id}
+          psychologistId={appointment.psychologist_id}
+          startsAtAtual={appointment.starts_at}
+          onReagendado={() => { setMostrarReagendar(false); onChange() }}
+          onCancelar={() => setMostrarReagendar(false)}
+        />
+      )}
 
       {mostrarAvaliacao && (
         <ReviewForm
@@ -138,51 +159,54 @@ export default function SessionCard({
       )}
 
       {mostrarNotas && (
-        <SessionNoteForm appointmentId={appointment.id} psychologistId={appointment.psychologist_id} />
+        <SessionNoteForm appointmentId={appointment.id} />
       )}
     </div>
   )
 }
 
-function SessionNoteForm({ appointmentId, psychologistId }: { appointmentId: string; psychologistId: string }) {
+function SessionNoteForm({ appointmentId }: { appointmentId: string }) {
   const [conteudo, setConteudo] = useState('')
   const [humor, setHumor] = useState<number | ''>('')
   const [proximosPassos, setProximosPassos] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(false)
-  const supabase = createClient()
+  const [erro, setErro] = useState('')
 
   useEffect(() => {
     async function carregar() {
-      const { data } = await supabase
-        .from('session_notes')
-        .select('*')
-        .eq('appointment_id', appointmentId)
-        .maybeSingle()
-
-      if (data) {
-        setConteudo(data.content_encrypted || '')
-        setHumor(data.mood_score ?? '')
-        setProximosPassos(data.next_steps || '')
+      try {
+        const resposta = await fetch(`/api/notas-sessao?appointmentId=${appointmentId}`)
+        const dados = await resposta.json()
+        if (dados.nota) {
+          setConteudo(dados.nota.conteudo)
+          setHumor(dados.nota.humor ?? '')
+          setProximosPassos(dados.nota.proximosPassos)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar notas da sessão:', err)
+      } finally {
+        setCarregando(false)
       }
-      setCarregando(false)
     }
     carregar()
   }, [appointmentId])
 
   async function salvar() {
     setSalvando(true)
-    await supabase.from('session_notes').upsert(
-      {
-        appointment_id: appointmentId,
-        psychologist_id: psychologistId,
-        content_encrypted: conteudo || null,
-        mood_score: humor === '' ? null : humor,
-        next_steps: proximosPassos || null,
-      },
-      { onConflict: 'appointment_id' }
-    )
+    setErro('')
+    const resposta = await fetch('/api/notas-sessao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointmentId, conteudo, humor, proximosPassos }),
+    })
+
+    if (!resposta.ok) {
+      setErro('Não foi possível salvar as notas.')
+      setSalvando(false)
+      return
+    }
     setSalvando(false)
     setSalvo(true)
     setTimeout(() => setSalvo(false), 2500)
@@ -194,7 +218,8 @@ function SessionNoteForm({ appointmentId, psychologistId }: { appointmentId: str
 
   return (
     <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-      <p className="text-xs text-slate-400">Anotações clínicas privadas — visíveis só para você.</p>
+      <p className="text-xs text-slate-400">Anotações clínicas privadas, criptografadas — visíveis só para você.</p>
+      {erro && <p className="text-xs text-red-600">{erro}</p>}
       <textarea
         placeholder="Anotações da sessão..."
         value={conteudo}
