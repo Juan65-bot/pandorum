@@ -1,17 +1,19 @@
 'use client'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, ShieldOff, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { ShieldOff, ShieldCheck, ChevronDown, ChevronUp, Search, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import StatusBadge from '@/components/admin/StatusBadge'
 import Pagination from '@/components/admin/Pagination'
 import { createClient } from '@/lib/supabase/client'
-import { capitalizarNome, formatarPreco, cn } from '@/lib/utils'
+import { capitalizarNome, formatarPreco, formatarCRP, cn } from '@/lib/utils'
 import type { Psychologist, PsychologistStatus } from '@/lib/types'
 
 const POR_PAGINA = 10
 const FILTROS_STATUS: { label: string; valor: PsychologistStatus | 'todos' }[] = [
   { label: 'Todos', valor: 'todos' },
-  { label: 'Aprovados', valor: 'approved' },
-  { label: 'Pendentes', valor: 'pending' },
+  { label: 'Verificados', valor: 'approved' },
+  { label: 'Aguardando análise', valor: 'pending_review' },
+  { label: 'Enviando documentos', valor: 'pending_documents' },
   { label: 'Suspensos', valor: 'suspended' },
   { label: 'Rejeitados', valor: 'rejected' },
 ]
@@ -28,14 +30,10 @@ export default function AdminPsicologosPage() {
   const [statusFiltro, setStatusFiltro] = useState<PsychologistStatus | 'todos'>('todos')
   const [pagina, setPagina] = useState(1)
   const [expandido, setExpandido] = useState<string | null>(null)
-  const [adminId, setAdminId] = useState('')
   const [erroAcao, setErroAcao] = useState('')
   const supabase = createClient()
 
   async function carregar() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) setAdminId(user.id)
-
     const [{ data: psicologos }, { data: appointments }, { data: payments }] = await Promise.all([
       supabase.from('psychologists').select('*, profiles!profile_id(*)'),
       supabase.from('appointments').select('psychologist_id, status'),
@@ -93,22 +91,30 @@ export default function AdminPsicologosPage() {
     setPagina(1)
   }
 
-  async function mudarStatus(id: string, novoStatus: PsychologistStatus) {
+  /**
+   * Suspender/reativar passa pela mesma rota das verificações para que a ação
+   * caia no log de auditoria imutável e dispare o e-mail — um update direto
+   * daqui pularia as duas coisas.
+   *
+   * Aprovar NÃO acontece nesta tela de propósito: aprovação exige o checklist
+   * e a conferência dos documentos, que vivem em /admin/verificacoes.
+   */
+  async function mudarStatus(id: string, acao: 'suspender' | 'reativar') {
     setErroAcao('')
-    const { error } = await supabase
-      .from('psychologists')
-      .update({ status: novoStatus, approved_at: new Date().toISOString(), approved_by: adminId })
-      .eq('id', id)
 
-    if (error) {
-      console.error('Erro ao mudar status do psicólogo:', error)
-      setErroAcao(
-        error.code === '22P02' || error.message?.includes('invalid input value for enum')
-          ? 'Essa ação exige uma atualização pendente do banco de dados (status "suspenso" ainda não foi habilitado). Peça para rodar a migration mais recente.'
-          : 'Não foi possível atualizar o status desse psicólogo.'
-      )
+    const resposta = await fetch('/api/admin/verificacoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ psychologistId: id, acao }),
+    })
+
+    if (!resposta.ok) {
+      const json = await resposta.json().catch(() => ({}))
+      console.error('Erro ao mudar status do psicólogo:', json)
+      setErroAcao(json.error || 'Não foi possível atualizar o status desse psicólogo.')
       return
     }
+
     carregar()
   }
 
@@ -189,7 +195,7 @@ export default function AdminPsicologosPage() {
                           </span>
                           <div className="min-w-0">
                             <p className="font-medium text-slate-800 truncate">{nome}</p>
-                            <p className="text-xs text-slate-400">CRP {p.crp_number}</p>
+                            <p className="text-xs text-slate-400">{formatarCRP(p.crp_region, p.crp_number)}</p>
                           </div>
                         </div>
                       </td>
@@ -199,22 +205,31 @@ export default function AdminPsicologosPage() {
                       <td className="px-5 py-3 text-right font-mono text-slate-700">{formatarPreco(p.receitaGerada)}</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-1.5">
-                          {p.status !== 'approved' && (
-                            <button
-                              onClick={() => mudarStatus(p.id, 'approved')}
-                              title="Aprovar"
+                          {p.status !== 'approved' && p.status !== 'suspended' && (
+                            <Link
+                              href="/admin/verificacoes"
+                              title="Analisar documentos e aprovar"
                               className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50"
                             >
-                              <BadgeCheck className="w-4 h-4" />
-                            </button>
+                              <ExternalLink className="w-4 h-4" />
+                            </Link>
                           )}
                           {p.status === 'approved' && (
                             <button
-                              onClick={() => mudarStatus(p.id, 'suspended')}
+                              onClick={() => mudarStatus(p.id, 'suspender')}
                               title="Suspender"
                               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
                             >
                               <ShieldOff className="w-4 h-4" />
+                            </button>
+                          )}
+                          {p.status === 'suspended' && (
+                            <button
+                              onClick={() => mudarStatus(p.id, 'reativar')}
+                              title="Reativar"
+                              className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50"
+                            >
+                              <ShieldCheck className="w-4 h-4" />
                             </button>
                           )}
                           <button

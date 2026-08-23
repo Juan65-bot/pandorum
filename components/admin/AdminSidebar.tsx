@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, UserCog, Users, CalendarClock, Wallet, LogOut, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, UserCog, ShieldCheck, Users, CalendarClock, Wallet, LogOut, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 const ITENS = [
   { href: '/admin', label: 'Visão geral', icone: LayoutDashboard },
   { href: '/admin/psicologos', label: 'Psicólogos', icone: UserCog },
+  { href: '/admin/verificacoes', label: 'Verificações', icone: ShieldCheck },
   { href: '/admin/pacientes', label: 'Pacientes', icone: Users },
   { href: '/admin/sessoes', label: 'Sessões', icone: CalendarClock },
   { href: '/admin/financeiro', label: 'Financeiro', icone: Wallet },

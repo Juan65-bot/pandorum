@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { validarCPF } from '@/lib/utils'
+import { UFS } from '@/lib/types'
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'Informe seu e-mail').email('E-mail inválido'),
@@ -38,10 +40,52 @@ export const patientProfileSchema = z.object({
 })
 export type PatientProfileInput = z.infer<typeof patientProfileSchema>
 
+/**
+ * Perfil profissional público (especialidades, abordagens, bio).
+ * CRP e dados de identidade NÃO ficam aqui: são definidos na verificação
+ * (verificacaoIdentidadeSchema) e ficam congelados depois de aprovados.
+ */
 export const psychologistProfileSchema = z.object({
-  crp_number: z.string().min(4, 'Informe um número de CRP válido'),
   specialties: z.array(z.string()).min(1, 'Selecione ao menos uma especialidade'),
   approaches: z.array(z.string()).min(1, 'Selecione ao menos uma abordagem'),
   bio: z.string().min(20, 'Escreva uma bio com pelo menos 20 caracteres').max(1000),
 })
 export type PsychologistProfileInput = z.infer<typeof psychologistProfileSchema>
+
+/** Etapa 1 da verificação: identidade e registro profissional. */
+export const verificacaoIdentidadeSchema = z.object({
+  full_name_document: z
+    .string()
+    .min(5, 'Informe o nome completo, exatamente como está no documento')
+    .refine((v) => v.trim().split(/\s+/).length >= 2, 'Informe nome e sobrenome'),
+  cpf: z.string().refine(validarCPF, 'CPF inválido — confira os números digitados'),
+  crp_region: z
+    .string()
+    .regex(/^\d{2}$/, 'A região do CRP tem 2 dígitos (ex: 06)'),
+  crp_number: z
+    .string()
+    .regex(/^\d{4,8}$/, 'O número do CRP tem entre 4 e 8 dígitos, sem a região'),
+  crp_state: z.enum(UFS, { message: 'Selecione o estado do CRP' }),
+  birth_date: z
+    .string()
+    .min(1, 'Informe sua data de nascimento')
+    .refine((v) => {
+      const data = new Date(v)
+      if (Number.isNaN(data.getTime())) return false
+      const idade = (Date.now() - data.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+      return idade >= 21 && idade <= 100
+    }, 'Data de nascimento inválida (a graduação em Psicologia exige no mínimo 21 anos)'),
+  phone: z
+    .string()
+    .refine((v) => v.replace(/\D/g, '').length >= 10, 'Informe um telefone com DDD'),
+})
+export type VerificacaoIdentidadeInput = z.infer<typeof verificacaoIdentidadeSchema>
+
+/** Etapa 3 da verificação: os quatro aceites obrigatórios. */
+export const verificacaoTermosSchema = z.object({
+  veracidade: z.literal(true, { message: 'É obrigatório declarar a veracidade das informações' }),
+  responsabilidade: z.literal(true, { message: 'É obrigatório declarar ciência da responsabilidade por fraude' }),
+  contrato: z.literal(true, { message: 'É obrigatório aceitar o contrato do psicólogo' }),
+  privacidade: z.literal(true, { message: 'É obrigatório aceitar a política de privacidade e LGPD' }),
+})
+export type VerificacaoTermosInput = z.infer<typeof verificacaoTermosSchema>

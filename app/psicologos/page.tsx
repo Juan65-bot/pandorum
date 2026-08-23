@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, BadgeCheck, Star, SlidersHorizontal, X, AlertTriangle } from 'lucide-react'
+import { Search, BadgeCheck, ShieldCheck, Star, SlidersHorizontal, X, AlertTriangle } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
-import { formatarPreco, capitalizarNome, cn } from '@/lib/utils'
+import { formatarPreco, capitalizarNome, formatarCRP, cn } from '@/lib/utils'
 import { ESPECIALIDADES, PRECO_SESSAO_PADRAO, type Psychologist } from '@/lib/types'
 
 export default function PsicologosPage() {
@@ -74,9 +74,15 @@ export default function PsicologosPage() {
         <h2 className="text-3xl font-serif text-slate-800 mb-2">
           Encontre seu psicólogo
         </h2>
-        <p className="text-slate-500 text-sm mb-8">
-          Todos os profissionais são verificados e registrados no CFP
-        </p>
+        <div className="flex items-start gap-2.5 bg-teal-50 border border-teal-100 rounded-2xl px-4 py-3 mb-8">
+          <ShieldCheck className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+          <p className="text-teal-800 text-xs leading-relaxed">
+            <span className="font-medium">Todo psicólogo aqui é verificado.</span>{' '}
+            Antes de aparecer nesta busca, cada profissional tem o número do CRP conferido junto ao Cadastro Nacional
+            de Psicólogos do Conselho Federal de Psicologia, além de documento oficial com foto e diploma de graduação
+            analisados pela nossa equipe.
+          </p>
+        </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center gap-3 mb-3">
           <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -165,7 +171,7 @@ export default function PsicologosPage() {
                         <BadgeCheck className="w-4 h-4 text-teal-600 flex-shrink-0" />
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <span>CRP {p.crp_number}</span>
+                        <span>{formatarCRP(p.crp_region, p.crp_number)}</span>
                         {p.rating_count > 0 && (
                           <span className="flex items-center gap-0.5 text-amber-500">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />

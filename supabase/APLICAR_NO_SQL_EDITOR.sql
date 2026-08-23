@@ -2,7 +2,13 @@
 -- PANDORUM — script único para colar no SQL Editor do Supabase e rodar de uma vez:
 -- https://supabase.com/dashboard/project/inutvjfdcuphazpgtdor/sql/new
 --
--- Equivale a rodar, em ordem, os 10 arquivos de supabase/migrations/.
+-- Equivale a rodar, em ordem, os arquivos 0001-0011 de supabase/migrations/.
+--
+-- ATENÇÃO — 0012 e 0013 (verificação de identidade do psicólogo) NÃO estão
+-- aqui e precisam ser rodadas separadamente, uma execução para cada, nessa
+-- ordem, DEPOIS deste arquivo. O motivo é do Postgres: a 0012 cria valores
+-- de enum que a 0013 já usa, e um valor de enum não pode ser usado na mesma
+-- transação em que foi criado. Ver supabase/VERIFICACAO_PSICOLOGO.md.
 -- 100% idempotente: pode rodar de novo sem quebrar nada.
 -- NÃO cria nem apaga nenhuma tabela — só grants, triggers, RLS, policies,
 -- funções e o bucket de storage "avatars". O schema (profiles, patients,
@@ -489,6 +495,10 @@ begin
 end $$;
 
 -- ============================================================================
+-- Depois deste arquivo, rode ainda (cada uma em uma execução separada):
+--   1) supabase/migrations/0012_verification_status_enum.sql
+--   2) supabase/migrations/0013_psychologist_verification.sql
+--
 -- Fim. Depois de rodar, confirme em Database > Tables que profiles, patients,
 -- psychologists, appointments, payments, reviews e session_notes mostram o
 -- cadeado de RLS ativado. Peça para o Claude testar em seguida — ele consegue

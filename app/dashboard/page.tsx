@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { formatarDataHora, capitalizarNome, cn } from '@/lib/utils'
 import { podeEntrarNaSala } from '@/lib/scheduling'
-import type { Appointment, Profile, Role } from '@/lib/types'
+import type { Appointment, Profile, Role, PsychologistStatus } from '@/lib/types'
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const [realizadas, setRealizadas] = useState(0)
   const [agendadas, setAgendadas] = useState(0)
   const [proxima, setProxima] = useState<Appointment | null>(null)
-  const [statusPsicologo, setStatusPsicologo] = useState<'pending' | 'approved' | 'rejected' | null>(null)
+  const [statusPsicologo, setStatusPsicologo] = useState<PsychologistStatus | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -110,22 +110,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {role === 'psychologist' && statusPsicologo === null && (
+        {role === 'psychologist' && (statusPsicologo === null || statusPsicologo === 'pending_documents' || statusPsicologo === 'pending') && (
           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Complete seu perfil profissional para começar a receber pacientes.
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            Conclua sua verificação profissional para começar a receber pacientes.
+            <Link href="/psicologo/verificacao" className="underline font-medium ml-auto flex-shrink-0">Verificar agora</Link>
           </div>
         )}
-        {role === 'psychologist' && statusPsicologo === 'pending' && (
+        {role === 'psychologist' && statusPsicologo === 'pending_review' && (
           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Seu CRP ainda está em análise pela equipe Pandorum.
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            Seus documentos estão em análise. Você recebe um e-mail com a decisão em até 48h úteis.
           </div>
         )}
         {role === 'psychologist' && statusPsicologo === 'rejected' && (
           <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Seu cadastro não foi aprovado. Revise seu perfil profissional.
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            Seu cadastro não foi aprovado.
+            <Link href="/psicologo/verificacao" className="underline font-medium ml-auto flex-shrink-0">Ver motivo</Link>
           </div>
         )}
 

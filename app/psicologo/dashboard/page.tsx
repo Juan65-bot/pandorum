@@ -12,6 +12,9 @@ import {
   BadgeCheck,
   CalendarClock,
   ArrowRight,
+  ShieldAlert,
+  ShieldCheck,
+  XCircle,
 } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
@@ -149,28 +152,30 @@ export default function DashboardPsicologoPage() {
           </div>
         </div>
 
-        {statusPsicologo === null && (
+        {(statusPsicologo === null || statusPsicologo === 'pending_documents' || statusPsicologo === 'pending') && (
           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Complete seu perfil profissional para começar a receber pacientes.
-            <Link href="/psicologo/completar-perfil" className="underline font-medium ml-auto flex-shrink-0">Completar agora</Link>
+            <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+            Conclua sua verificação profissional para começar a receber pacientes.
+            <Link href="/psicologo/verificacao" className="underline font-medium ml-auto flex-shrink-0">Verificar agora</Link>
           </div>
         )}
-        {statusPsicologo === 'pending' && (
+        {statusPsicologo === 'pending_review' && (
           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Seu CRP ainda está em análise pela equipe Pandorum.
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            Seus documentos estão em análise. O prazo é de até 48h úteis e você recebe um e-mail com a decisão.
+            <Link href="/psicologo/verificacao" className="underline font-medium ml-auto flex-shrink-0">Acompanhar</Link>
           </div>
         )}
         {statusPsicologo === 'rejected' && (
           <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
-            Seu cadastro não foi aprovado. Revise seu perfil profissional.
+            <XCircle className="w-4 h-4 flex-shrink-0" />
+            Seu cadastro não foi aprovado. Veja o motivo e reenvie seus documentos.
+            <Link href="/psicologo/verificacao" className="underline font-medium ml-auto flex-shrink-0">Ver motivo</Link>
           </div>
         )}
         {statusPsicologo === 'suspended' && (
           <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm mb-8">
-            <Clock className="w-4 h-4" />
+            <ShieldAlert className="w-4 h-4 flex-shrink-0" />
             Sua conta foi suspensa pela equipe Pandorum. Entre em contato com o suporte.
           </div>
         )}
@@ -325,7 +330,8 @@ export default function DashboardPsicologoPage() {
         <div className="grid grid-cols-3 gap-6">
           <AtalhoCard icone={<CalendarDays className="w-5 h-5" />} titulo="Agenda" descricao="Veja sua semana e seus horários livres" href="/psicologo/agenda" cta="Abrir agenda" />
           <AtalhoCard icone={<Users className="w-5 h-5" />} titulo="Pacientes" descricao="Histórico completo de quem você atende" href="/psicologo/pacientes" cta="Ver pacientes" secundario />
-          <AtalhoCard icone={<BadgeCheck className="w-5 h-5" />} titulo="Perfil profissional" descricao="CRP, especialidades, valor da sessão" href="/psicologo/completar-perfil" cta="Gerenciar perfil" secundario />
+          <AtalhoCard icone={<BadgeCheck className="w-5 h-5" />} titulo="Perfil profissional" descricao="Especialidades, abordagens e bio" href="/psicologo/completar-perfil" cta="Gerenciar perfil" secundario />
+          <AtalhoCard icone={<ShieldCheck className="w-5 h-5" />} titulo="Verificação profissional" descricao="CRP, documentos e status da análise" href="/psicologo/verificacao" cta="Ver verificação" secundario />
         </div>
       </div>
     </main>

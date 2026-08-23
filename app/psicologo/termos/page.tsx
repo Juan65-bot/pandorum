@@ -44,7 +44,7 @@ export default function TermosPsicologoPage() {
     // navegação completa (não client-side) para garantir que a próxima página
     // carregue com a sessão já atualizada, evitando condição de corrida com o
     // evento USER_UPDATED do Supabase
-    window.location.href = '/psicologo/completar-perfil'
+    window.location.href = '/psicologo/verificacao'
   }
 
   if (loading) {

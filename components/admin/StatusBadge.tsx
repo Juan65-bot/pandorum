@@ -12,7 +12,9 @@ const CORES: Record<Variante, string> = {
 
 const MAPAS: Record<string, Record<string, { label: string; cor: Variante }>> = {
   psicologo: {
-    approved: { label: 'Aprovado', cor: 'teal' },
+    approved: { label: 'Verificado', cor: 'teal' },
+    pending_documents: { label: 'Enviando documentos', cor: 'slate' },
+    pending_review: { label: 'Aguardando análise', cor: 'amber' },
     pending: { label: 'Pendente', cor: 'amber' },
     rejected: { label: 'Rejeitado', cor: 'red' },
     suspended: { label: 'Suspenso', cor: 'red' },

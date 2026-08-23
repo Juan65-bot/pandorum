@@ -3,15 +3,16 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, Clock, XCircle, Wallet } from 'lucide-react'
+import Link from 'next/link'
+import { BadgeCheck, Clock, XCircle, Wallet, ShieldCheck } from 'lucide-react'
 import Header from '@/components/Header'
 import AvatarUpload from '@/components/AvatarUpload'
 import AvailabilityManager from '@/components/AvailabilityManager'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { psychologistProfileSchema, type PsychologistProfileInput } from '@/lib/validation'
-import { ESPECIALIDADES, ABORDAGENS, PRECO_SESSAO_PADRAO, type PsychologistStatus } from '@/lib/types'
-import { cn, formatarPreco } from '@/lib/utils'
+import { ESPECIALIDADES, ABORDAGENS, PRECO_SESSAO_PADRAO, type Psychologist, type PsychologistStatus } from '@/lib/types'
+import { cn, formatarPreco, formatarCRP } from '@/lib/utils'
 
 interface ErroSupabase {
   code?: string
@@ -23,24 +24,18 @@ function mensagemDeErro(error: ErroSupabase): string {
   console.error('Erro ao salvar perfil do psicólogo:', error)
 
   if (error.code === '23505') {
-    if (error.message?.includes('crp_number')) {
-      return 'Esse número de CRP já está cadastrado em outra conta. Verifique se digitou corretamente.'
-    }
     return 'Alguma informação já está cadastrada em outra conta.'
   }
-
   if (error.code === '42501') {
     return 'Você não tem permissão para salvar esse perfil. Faça login novamente e tente de novo.'
   }
-
   return 'Não foi possível salvar seu perfil. Tente novamente em instantes.'
 }
 
 export default function CompletarPerfilPsicologoPage() {
   const [userId, setUserId] = useState('')
-  const [psychologistId, setPsychologistId] = useState('')
+  const [psicologo, setPsicologo] = useState<Psychologist | null>(null)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
-  const [status, setStatus] = useState<PsychologistStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState('')
@@ -85,16 +80,24 @@ export default function CompletarPerfilPsicologoPage() {
         .eq('profile_id', user.id)
         .maybeSingle()
 
-      if (psi) {
-        setPsychologistId(psi.id)
-        setStatus(psi.status)
-        reset({
-          crp_number: psi.crp_number || '',
-          specialties: psi.specialties || [],
-          approaches: psi.approaches || [],
-          bio: psi.bio || '',
-        })
+      // Sem verificação concluída não existe perfil profissional para preencher:
+      // quem ainda não enviou os documentos (ou foi rejeitado) volta para o
+      // fluxo de verificação, que é onde os dados de identidade são tratados.
+      const precisaVerificar =
+        !psi || psi.status === 'pending_documents' || psi.status === 'pending' || psi.status === 'rejected'
+
+      if (precisaVerificar) {
+        router.push('/psicologo/verificacao')
+        return
       }
+
+      const registro = psi as Psychologist
+      setPsicologo(registro)
+      reset({
+        specialties: registro.specialties || [],
+        approaches: registro.approaches || [],
+        bio: registro.bio || '',
+      })
 
       setLoading(false)
     }
@@ -116,27 +119,21 @@ export default function CompletarPerfilPsicologoPage() {
   }
 
   async function onSubmit(dados: PsychologistProfileInput) {
+    if (!psicologo) return
     setErro('')
     setSucesso(false)
 
-    const payload = {
-      profile_id: userId,
-      crp_number: dados.crp_number,
-      specialties: dados.specialties,
-      approaches: dados.approaches,
-      bio: dados.bio,
-      session_price: PRECO_SESSAO_PADRAO,
-    }
+    const { error } = await supabase
+      .from('psychologists')
+      .update({
+        specialties: dados.specialties,
+        approaches: dados.approaches,
+        bio: dados.bio,
+        session_price: PRECO_SESSAO_PADRAO,
+      })
+      .eq('id', psicologo.id)
 
-    if (psychologistId) {
-      const { error } = await supabase.from('psychologists').update(payload).eq('id', psychologistId)
-      if (error) { setErro(mensagemDeErro(error)); return }
-    } else {
-      const { data, error } = await supabase.from('psychologists').insert(payload).select().single()
-      if (error) { setErro(mensagemDeErro(error)); return }
-      setPsychologistId(data.id)
-      setStatus(data.status)
-    }
+    if (error) { setErro(mensagemDeErro(error)); return }
 
     setSucesso(true)
     setTimeout(() => setSucesso(false), 3000)
@@ -149,6 +146,8 @@ export default function CompletarPerfilPsicologoPage() {
       </main>
     )
   }
+
+  const status: PsychologistStatus | null = psicologo?.status ?? null
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -164,26 +163,23 @@ export default function CompletarPerfilPsicologoPage() {
 
         {status === 'approved' && (
           <div className="flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-3 rounded-xl text-sm">
-            <BadgeCheck className="w-4 h-4" />
-            Seu CRP foi verificado pela equipe Pandorum. Seu perfil já aparece na busca.
+            <BadgeCheck className="w-4 h-4 flex-shrink-0" />
+            Cadastro verificado. Seu perfil aparece na busca com o selo de psicólogo verificado.
           </div>
         )}
-        {status === 'rejected' && (
-          <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <XCircle className="w-4 h-4" />
-            Seu cadastro não foi aprovado. Revise seus dados ou entre em contato com o suporte.
+        {status === 'pending_review' && (
+          <div className="flex items-start gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm">
+            <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              Seus documentos estão em análise (prazo de até 48h úteis). Você já pode preencher o perfil abaixo —
+              ele entra no ar assim que a verificação for aprovada.
+            </span>
           </div>
         )}
         {status === 'suspended' && (
           <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <XCircle className="w-4 h-4" />
+            <XCircle className="w-4 h-4 flex-shrink-0" />
             Sua conta foi suspensa pela equipe Pandorum. Entre em contato com o suporte para mais informações.
-          </div>
-        )}
-        {(status === 'pending' || status === null) && (
-          <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl text-sm">
-            <Clock className="w-4 h-4" />
-            Seu CRP ainda está em análise. Assim que verificado, seu perfil aparece na busca.
           </div>
         )}
 
@@ -198,14 +194,18 @@ export default function CompletarPerfilPsicologoPage() {
           {userId && <AvatarUpload userId={userId} url={fotoUrl} onUploaded={handleFotoEnviada} />}
 
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1">Número do CRP</label>
-            <input
-              type="text"
-              placeholder="Ex: 06/123456"
-              {...register('crp_number')}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-500"
-            />
-            {errors.crp_number && <p className="text-xs text-red-600 mt-1">{errors.crp_number.message}</p>}
+            <label className="text-sm font-medium text-slate-700 block mb-1">Registro profissional</label>
+            <div className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-600">
+              <ShieldCheck className="w-4 h-4 text-teal-600 flex-shrink-0" />
+              {formatarCRP(psicologo?.crp_region ?? null, psicologo?.crp_number ?? null)}
+              {status === 'approved' && <span className="text-xs text-teal-600">· verificado</span>}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              O CRP é conferido na verificação e não pode ser alterado depois.{' '}
+              <Link href="/psicologo/verificacao" className="text-teal-700 hover:underline">
+                Ver meus dados de verificação
+              </Link>
+            </p>
           </div>
 
           <div>
@@ -281,7 +281,7 @@ export default function CompletarPerfilPsicologoPage() {
           </button>
         </form>
 
-        {psychologistId && <AvailabilityManager psychologistId={psychologistId} />}
+        {psicologo && <AvailabilityManager psychologistId={psicologo.id} />}
       </div>
     </main>
   )

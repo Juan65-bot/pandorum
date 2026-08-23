@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
-import { Star, BadgeCheck, Check } from 'lucide-react'
+import { Star, BadgeCheck, Check, ShieldCheck } from 'lucide-react'
 import Header from '@/components/Header'
 import BookingCalendar from '@/components/BookingCalendar'
 import { createClient } from '@/lib/supabase/server'
-import { formatarPreco, capitalizarNome } from '@/lib/utils'
+import { formatarPreco, capitalizarNome, formatarCRP, formatarData } from '@/lib/utils'
 import { DURACAO_SESSAO_MINUTOS, PRECO_SESSAO_PADRAO, type Psychologist } from '@/lib/types'
 
 export default async function PsicologoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,12 +43,14 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
                 <h1 className="text-xl font-serif text-slate-800 flex items-center gap-1.5">
                   {nome}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-medium">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="flex items-center gap-1 text-xs bg-teal-700 text-white px-2.5 py-1 rounded-full font-medium">
                     <BadgeCheck className="w-3.5 h-3.5" />
-                    CRP verificado
+                    Psicólogo verificado
                   </span>
-                  <span className="text-sm text-slate-400">{psicologo.crp_number}</span>
+                  <span className="text-sm text-slate-500 font-medium">
+                    {formatarCRP(psicologo.crp_region, psicologo.crp_number)}
+                  </span>
                 </div>
                 {psicologo.rating_count > 0 && (
                   <div className="flex items-center gap-1 text-sm text-amber-500 mt-1">
@@ -80,6 +82,17 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
             )}
 
             {psicologo.bio && <p className="text-sm text-slate-600 leading-relaxed">{psicologo.bio}</p>}
+
+            <div className="mt-5 pt-5 border-t border-slate-100 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-500 leading-relaxed">
+                <span className="font-medium text-slate-700">Identidade verificada pelo Pandorum.</span>{' '}
+                O registro {formatarCRP(psicologo.crp_region, psicologo.crp_number)} foi conferido junto ao Cadastro
+                Nacional de Psicólogos do Conselho Federal de Psicologia. Também analisamos documento oficial com foto,
+                selfie de conferência e diploma de graduação em Psicologia antes de liberar este perfil.
+                {psicologo.approved_at && ` Verificado em ${formatarData(psicologo.approved_at)}.`}
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">

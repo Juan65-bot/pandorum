@@ -25,6 +25,7 @@ npm install
 - `NEXT_PUBLIC_SITE_URL` — URL pública do site (`http://localhost:3000` em dev).
 - `CRON_SECRET` — já gerado em `.env.local`; copie o mesmo valor para a Vercel (Settings → Environment Variables), senão o cron job de completar sessões falha em produção.
 - `SESSION_NOTES_ENCRYPTION_KEY` — já gerado em `.env.local`; copie também para a Vercel. É a chave que criptografa as notas clínicas — se ela mudar, notas antigas ficam ilegíveis.
+- `RESEND_API_KEY` e `EMAIL_REMETENTE` — envio dos e-mails de verificação do psicólogo. Opcionais: sem a chave, aprovar/rejeitar continua funcionando e o e-mail apenas vai para o log do servidor.
 
 3. Rode as migrations no Supabase: cole o conteúdo de `supabase/APLICAR_NO_SQL_EDITOR.sql` no SQL Editor do Dashboard e execute (ou rode os arquivos de `supabase/migrations/` em ordem, ou via `supabase db push` com o CLI logado e o projeto linkado). Elas criam o trigger que preenche `profiles` no cadastro, os grants da `service_role`, políticas de RLS, funções e índices — nenhuma tabela nova é criada, pois o schema (`profiles`, `patients`, `psychologists`, `availability_slots`, `appointments`, `payments`, `reviews`, `session_notes`) já existe no projeto Supabase. **Sem rodar isso, cadastro de usuário fica quebrado** (ver "Pontos de atenção" abaixo).
 
@@ -62,8 +63,8 @@ supabase/migrations/  políticas de RLS, triggers e funções (não recria tabel
 ## Papéis de usuário
 
 - **Paciente**: busca psicólogos, agenda e paga sessões, avalia sessões concluídas.
-- **Psicólogo**: completa perfil profissional, define horários de atendimento, atende sessões, escreve notas clínicas privadas.
-- **Admin**: aprova/rejeita cadastros de psicólogos (verificação de CRP), acompanha métricas da plataforma.
+- **Psicólogo**: passa pela verificação de identidade (CRP + documentos), completa perfil profissional, define horários de atendimento, atende sessões, escreve notas clínicas privadas.
+- **Admin**: analisa a fila de verificação em `/admin/verificacoes` (documentos, checklist, aprovação/rejeição), acompanha métricas da plataforma.
 
 ## Videochamada
 
@@ -75,5 +76,5 @@ A sala de sessão usa WebRTC ponto-a-ponto, com sinalização via Supabase Realt
 - A comissão da plataforma (30%, conforme o contrato aceito pelo psicólogo em `/psicologo/termos`) está fixa em `lib/stripe.ts` (`TAXA_PLATAFORMA`) — se o valor mudar, atualize os dois lugares juntos.
 - O contrato em `/psicologo/termos` é um texto padrão gerado para o produto — recomendamos revisão por um advogado antes de valer como termo vinculante em produção.
 - Não há repasse automático (payout) para os psicólogos via Stripe Connect — os campos `psy_payout`/`platform_fee` são calculados e registrados, mas o repasse em si precisa ser implementado (Stripe Connect, que exige onboarding do próprio psicólogo, ou processo manual).
-- Notificações por e-mail (confirmação de sessão, lembrete) ainda não existem — precisam de um serviço de envio (ex.: Resend) configurado.
+- Notificações por e-mail de **sessão** (confirmação, lembrete) ainda não existem. As de **verificação do psicólogo** já estão implementadas (`lib/email.ts`) e só precisam da `RESEND_API_KEY`.
 - A videochamada usa só STUN público (sem TURN) — pode falhar em redes com NAT muito restritivo.
