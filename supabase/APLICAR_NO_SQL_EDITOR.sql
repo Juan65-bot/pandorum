@@ -2,7 +2,7 @@
 -- PANDORUM — script único para colar no SQL Editor do Supabase e rodar de uma vez:
 -- https://supabase.com/dashboard/project/inutvjfdcuphazpgtdor/sql/new
 --
--- Equivale a rodar, em ordem, os 8 arquivos de supabase/migrations/.
+-- Equivale a rodar, em ordem, os 10 arquivos de supabase/migrations/.
 -- 100% idempotente: pode rodar de novo sem quebrar nada.
 -- NÃO cria nem apaga nenhuma tabela — só grants, triggers, RLS, policies,
 -- funções e o bucket de storage "avatars". O schema (profiles, patients,
@@ -147,6 +147,24 @@ create policy "profiles_insert_own" on public.profiles
 drop policy if exists "profiles_admin_all" on public.profiles;
 create policy "profiles_admin_all" on public.profiles
   for all using (public.is_admin());
+
+-- RLS restringe QUAL LINHA pode ser editada (a própria), nunca QUAIS COLUNAS —
+-- sem isso, qualquer um poderia trocar o próprio role para 'admin' via
+-- profiles_update_own, já que "id = auth.uid()" continua valendo depois da troca.
+create or replace function public.protect_profile_role()
+returns trigger as $$
+begin
+  if new.role is distinct from old.role and not public.is_admin() then
+    new.role := old.role;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists profiles_protect_role on public.profiles;
+create trigger profiles_protect_role
+  before update on public.profiles
+  for each row execute function public.protect_profile_role();
 
 -- psicólogo precisa ler o profile de quem reservou (nome/foto do paciente vinculado a ele)
 drop policy if exists "profiles_select_involved_in_appointment" on public.profiles;
@@ -431,6 +449,44 @@ create policy "avatars_owner_delete" on storage.objects
 -- enum psy_status só aceita pending/approved/rejected.
 
 alter type public.psy_status add value if not exists 'suspended';
+
+
+-- ##################  0009_remove_unknown_policies.sql  ##################
+-- Remove qualquer policy nas 8 tabelas da Pandorum que não seja uma das que a
+-- própria plataforma usa — cobre sobras de correções automáticas feitas por
+-- fora deste script (ex.: botão de "fix" do Security Advisor do Supabase),
+-- que podem ter nomes desconhecidos e ficariam invisíveis pra "drop policy
+-- if exists <nome>" comum.
+
+do $$
+declare
+  pol record;
+  policies_conhecidas text[] := array[
+    'profiles_select_own', 'profiles_update_own', 'profiles_insert_own', 'profiles_admin_all',
+    'profiles_select_involved_in_appointment', 'profiles_select_approved_psychologist',
+    'patients_owner_all', 'patients_select_linked_psychologist', 'patients_admin_all',
+    'psychologists_select_public', 'psychologists_owner_write', 'psychologists_owner_update', 'psychologists_admin_all',
+    'availability_select_public', 'availability_owner_write', 'availability_admin_all',
+    'appointments_select_involved', 'appointments_insert_patient', 'appointments_update_involved', 'appointments_admin_all',
+    'payments_select_involved', 'payments_insert_patient_pending', 'payments_update_patient_pending', 'payments_admin_all',
+    'reviews_select_involved', 'reviews_insert_patient', 'reviews_admin_all',
+    'session_notes_owner_all', 'session_notes_admin_all'
+  ];
+begin
+  for pol in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in (
+        'profiles', 'patients', 'psychologists', 'availability_slots',
+        'appointments', 'payments', 'reviews', 'session_notes'
+      )
+      and policyname <> all (policies_conhecidas)
+  loop
+    execute format('drop policy %I on %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    raise notice 'Removida policy desconhecida "%" em %.%', pol.policyname, pol.schemaname, pol.tablename;
+  end loop;
+end $$;
 
 -- ============================================================================
 -- Fim. Depois de rodar, confirme em Database > Tables que profiles, patients,

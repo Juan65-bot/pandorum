@@ -65,6 +65,24 @@ drop policy if exists "profiles_admin_all" on public.profiles;
 create policy "profiles_admin_all" on public.profiles
   for all using (public.is_admin());
 
+-- RLS restringe QUAL LINHA pode ser editada (a própria), nunca QUAIS COLUNAS —
+-- sem isso, qualquer um poderia trocar o próprio role para 'admin' via
+-- profiles_update_own, já que "id = auth.uid()" continua valendo depois da troca.
+create or replace function public.protect_profile_role()
+returns trigger as $$
+begin
+  if new.role is distinct from old.role and not public.is_admin() then
+    new.role := old.role;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists profiles_protect_role on public.profiles;
+create trigger profiles_protect_role
+  before update on public.profiles
+  for each row execute function public.protect_profile_role();
+
 -- psicólogo precisa ler o profile de quem reservou (nome/foto do paciente vinculado a ele)
 drop policy if exists "profiles_select_involved_in_appointment" on public.profiles;
 create policy "profiles_select_involved_in_appointment" on public.profiles
