@@ -31,7 +31,9 @@ npm install
 
 4. Configure o webhook do Stripe apontando para `https://SEU_DOMINIO/api/pagamentos/webhook`, assinando os eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` e `checkout.session.expired`. Em desenvolvimento, use `stripe listen --forward-to localhost:3000/api/pagamentos/webhook`.
 
-4b. O cron job que marca sessões como concluídas (`vercel.json`, roda `/api/cron/completar-sessoes` a cada hora) só é ativado automaticamente quando o projeto está deployado na Vercel — não precisa configurar nada além de garantir que `CRON_SECRET` esteja definido lá. No plano Hobby a Vercel pode limitar a frequência real de execução.
+4b. O cron job que marca sessões como concluídas (`vercel.json`, roda `/api/cron/completar-sessoes`) é ativado automaticamente no deploy da Vercel — basta `CRON_SECRET` estar definido lá.
+
+> **O plano Hobby só aceita cron diário.** Um `schedule` mais frequente que isso não deixa o build falhar: a Vercel **recusa criar o deployment inteiro**, com o erro `cron_jobs_limits_reached`. Como nenhum build chega a aparecer no painel, parece que a integração com o GitHub quebrou. Foi exatamente o que aconteceu entre 18 e 23/08/2026, com um `0 * * * *` (de hora em hora) segurando 4 commits sem deploy. O valor atual é `0 6 * * *` (03:00 de Brasília, diário). Para voltar a rodar de hora em hora sem migrar para o Pro, aponte um cron externo (ex.: cron-job.org) para `/api/cron/completar-sessoes` mandando o header `Authorization: Bearer $CRON_SECRET`.
 
 5. Rode o servidor de desenvolvimento:
 
