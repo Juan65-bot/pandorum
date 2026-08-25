@@ -43,7 +43,7 @@ export default function AgendaPsicologoPage() {
     <main className="min-h-screen bg-slate-50">
       <Header backHref="/psicologo/dashboard" />
 
-      <div className="max-w-5xl mx-auto px-8 py-10">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
         <h2 className="text-3xl font-serif text-slate-800 mb-2">Minha agenda</h2>
         <p className="text-slate-500 text-sm mb-8">Todas as suas sessões confirmadas e aguardando pagamento</p>
 

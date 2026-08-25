@@ -191,3 +191,93 @@ export function emailDocumentoAdicional(nome: string, descricao: string) {
     }),
   }
 }
+
+// ============================================================
+// Cancelamento de sessão
+// ============================================================
+
+interface DadosCancelamento {
+  dataHoraSessao: string
+  canceladoPor: 'patient' | 'psychologist' | 'admin'
+  nomePaciente: string
+  nomePsicologo: string
+  resultado: {
+    tardio: boolean
+    valorMulta: number
+    repassePsicologo: number
+    comissaoPlataforma: number
+    explicacao: string
+  }
+}
+
+function reais(valor: number) {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function dataHoraBR(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function caixa(cor: 'verde' | 'ambar', titulo: string, corpo: string) {
+  const paleta = cor === 'verde'
+    ? { fundo: '#f0fdfa', borda: '#0f766e', titulo: '#115e59', texto: '#134e4a' }
+    : { fundo: '#fffbeb', borda: '#d97706', titulo: '#92400e', texto: '#78350f' }
+  return `<div style="background:${paleta.fundo};border-left:3px solid ${paleta.borda};padding:14px 16px;border-radius:8px;margin:16px 0;">
+    <p style="margin:0 0 6px;font-size:12px;color:${paleta.titulo};text-transform:uppercase;letter-spacing:0.04em;">${titulo}</p>
+    <div style="margin:0;color:${paleta.texto};">${corpo}</div>
+  </div>`
+}
+
+export function emailCancelamentoPaciente(d: DadosCancelamento) {
+  const quem = d.canceladoPor === 'patient' ? 'Você cancelou' : `${escapar(d.nomePsicologo)} cancelou`
+
+  const financeiro = d.resultado.tardio
+    ? caixa('ambar', 'Taxa de cancelamento',
+        `<p style="margin:0 0 8px;">Como o cancelamento foi feito com menos de 24h de antecedência, foi retida uma taxa de <strong>${reais(d.resultado.valorMulta)}</strong>, equivalente a 50% do valor da sessão.</p>
+         <p style="margin:0;font-size:13px;">Se você já havia pago a sessão integralmente, a diferença é devolvida pelo mesmo meio de pagamento em até 10 dias úteis.</p>`)
+    : caixa('verde', 'Sem cobrança',
+        `<p style="margin:0;">Nenhum valor foi cobrado. Se a sessão já estava paga, o reembolso integral é processado pelo mesmo meio de pagamento em até 10 dias úteis.</p>`)
+
+  return {
+    assunto: 'Sessão cancelada — Pandorum',
+    html: layout({
+      titulo: 'Sua sessão foi cancelada',
+      corpo: `
+        <p>${quem} a sessão marcada para <strong>${dataHoraBR(d.dataHoraSessao)}</strong> com ${escapar(d.nomePsicologo)}.</p>
+        ${financeiro}
+        <p>Você pode agendar um novo horário quando quiser.</p>
+      `,
+      cta: { label: 'Agendar nova sessão', href: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://pandorum.vercel.app'}/psicologos` },
+    }),
+  }
+}
+
+export function emailCancelamentoPsicologo(d: DadosCancelamento) {
+  const quem = d.canceladoPor === 'psychologist' ? 'Você cancelou' : `${escapar(d.nomePaciente)} cancelou`
+
+  const financeiro = d.resultado.tardio
+    ? caixa('verde', 'Repasse pelo cancelamento tardio',
+        `<p style="margin:0 0 8px;">O paciente cancelou com menos de 24h de antecedência, então a taxa de ${reais(d.resultado.valorMulta)} foi aplicada.</p>
+         <p style="margin:0;">Seu repasse: <strong>${reais(d.resultado.repassePsicologo)}</strong> (70%). Comissão da plataforma: ${reais(d.resultado.comissaoPlataforma)} (30%).</p>`)
+    : d.canceladoPor === 'psychologist'
+      ? caixa('ambar', 'Sem cobrança ao paciente',
+          `<p style="margin:0;">Cancelamentos feitos pelo profissional nunca geram cobrança ao paciente, independente da antecedência. Não há repasse referente a esta sessão.</p>`)
+      : caixa('ambar', 'Sem cobrança',
+          `<p style="margin:0;">O cancelamento foi feito com mais de 24h de antecedência, dentro do prazo gratuito. Não há repasse referente a esta sessão.</p>`)
+
+  return {
+    assunto: 'Sessão cancelada — Pandorum',
+    html: layout({
+      titulo: 'Uma sessão da sua agenda foi cancelada',
+      corpo: `
+        <p>${quem} a sessão de <strong>${dataHoraBR(d.dataHoraSessao)}</strong> com ${escapar(d.nomePaciente)}.</p>
+        ${financeiro}
+        <p>O horário voltou a ficar disponível na sua agenda automaticamente.</p>
+      `,
+      cta: { label: 'Ver minha agenda', href: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://pandorum.vercel.app'}/psicologo/agenda` },
+    }),
+  }
+}

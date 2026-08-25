@@ -136,7 +136,7 @@ export default function DashboardPsicologoPage() {
     <main className="min-h-screen bg-slate-50">
       <Header />
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
         <div className="bg-teal-700 rounded-2xl p-6 text-white mb-8 flex items-center gap-4">
           <span className="w-14 h-14 rounded-full bg-teal-600 flex items-center justify-center text-xl font-serif overflow-hidden flex-shrink-0 border-2 border-teal-400">
             {profile?.avatar_url ? (
@@ -181,7 +181,7 @@ export default function DashboardPsicologoPage() {
         )}
 
         {/* STATS */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-1.5 text-slate-400 mb-2"><Wallet className="w-4 h-4" /><span className="text-xs">Receita este mês</span></div>
             <div className="text-2xl font-serif text-slate-800">{formatarPreco(receitaMes)}</div>
@@ -302,7 +302,7 @@ export default function DashboardPsicologoPage() {
           {pacientes.length === 0 ? (
             <p className="text-sm text-slate-400">Você ainda não teve nenhuma sessão com paciente.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {pacientes.map((p) => {
                 const nomePaciente = capitalizarNome(p.profile.full_name) || 'Paciente'
                 return (
@@ -327,7 +327,7 @@ export default function DashboardPsicologoPage() {
         </div>
 
         {/* ATALHOS */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <AtalhoCard icone={<CalendarDays className="w-5 h-5" />} titulo="Agenda" descricao="Veja sua semana e seus horários livres" href="/psicologo/agenda" cta="Abrir agenda" />
           <AtalhoCard icone={<Users className="w-5 h-5" />} titulo="Pacientes" descricao="Histórico completo de quem você atende" href="/psicologo/pacientes" cta="Ver pacientes" secundario />
           <AtalhoCard icone={<BadgeCheck className="w-5 h-5" />} titulo="Perfil profissional" descricao="Especialidades, abordagens e bio" href="/psicologo/completar-perfil" cta="Gerenciar perfil" secundario />

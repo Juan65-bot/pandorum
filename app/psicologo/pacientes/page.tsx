@@ -100,11 +100,11 @@ export default function PacientesPsicologoPage() {
     <main className="min-h-screen bg-slate-50">
       <Header backHref="/psicologo/dashboard" />
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
         <h2 className="text-3xl font-serif text-slate-800 mb-2">Meus pacientes</h2>
         <p className="text-slate-500 text-sm mb-8">Histórico de quem você já atendeu pelo Pandorum</p>
 
-        <div className="grid grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-1.5 text-slate-400 mb-2"><Users className="w-4 h-4" /><span className="text-xs">Pacientes atendidos</span></div>
             <div className="text-2xl font-serif text-slate-800">{resumos.length}</div>

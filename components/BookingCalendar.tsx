@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { gerarSlotsDisponiveis, agruparSlotsPorDia } from '@/lib/scheduling'
 import { DURACAO_SESSAO_MINUTOS, type AvailabilitySlot } from '@/lib/types'
 import { cn, formatarPreco } from '@/lib/utils'
+import PoliticaCancelamentoResumo from '@/components/PoliticaCancelamentoResumo'
 
 interface BookingCalendarProps {
   psychologistId: string
@@ -92,7 +93,20 @@ export default function BookingCalendar({ psychologistId, sessionPrice }: Bookin
       .single()
 
     if (error) {
-      setErro('Esse horário acabou de ser reservado por outra pessoa. Escolha outro.')
+      // Antes toda falha virava "horário já reservado", o que mandava a pessoa
+      // tentar outro horário para sempre quando a causa era outra — por exemplo
+      // psicólogo não aprovado (trigger appointments_require_approved_psychologist).
+      console.error('Erro ao criar agendamento:', error)
+      const conflito = error.code === '23505'
+      const psicologoIndisponivel = error.code === '23514' || error.message?.includes('não está disponível')
+
+      setErro(
+        conflito
+          ? 'Esse horário acabou de ser reservado por outra pessoa. Escolha outro.'
+          : psicologoIndisponivel
+            ? 'Este profissional não está disponível para agendamento no momento.'
+            : 'Não foi possível concluir o agendamento. Tente novamente em instantes.'
+      )
       setAgendando(false)
       return
     }
@@ -131,7 +145,7 @@ export default function BookingCalendar({ psychologistId, sessionPrice }: Bookin
       </div>
 
       {diaAtivo && (
-        <div className="grid grid-cols-4 gap-2 mb-6">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-6">
           {slotsPorDia.get(diaAtivo)!.map((slot) => {
             const ativo = horarioSelecionado?.getTime() === slot.getTime()
             return (
@@ -152,8 +166,10 @@ export default function BookingCalendar({ psychologistId, sessionPrice }: Bookin
 
       {erro && <p className="text-sm text-red-600 mb-3">{erro}</p>}
 
+      {horarioSelecionado && <PoliticaCancelamentoResumo className="mb-3" />}
+
       {horarioSelecionado && (
-        <div className="bg-teal-50 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-teal-50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="text-sm text-teal-800">
             <div className="flex items-center gap-1.5 font-medium">
               <Calendar className="w-4 h-4" />
@@ -167,9 +183,9 @@ export default function BookingCalendar({ psychologistId, sessionPrice }: Bookin
           <button
             onClick={confirmarAgendamento}
             disabled={agendando}
-            className="flex items-center gap-2 px-5 py-2.5 bg-teal-700 text-white text-sm rounded-full hover:bg-teal-800 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-700 text-white text-sm rounded-full hover:bg-teal-800 disabled:opacity-50 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
           >
-            {agendando && <Loader2 className="w-4 h-4 animate-spin" />}
+            {agendando && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
             {agendando ? 'Agendando...' : 'Confirmar e pagar'}
           </button>
         </div>

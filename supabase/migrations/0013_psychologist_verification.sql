@@ -184,7 +184,7 @@ begin
     -- Única transição que o próprio psicólogo pode disparar: mandar o cadastro
     -- para análise. E só quando os 5 documentos obrigatórios existirem de fato
     -- no banco — a checagem é no servidor, não dá para forjar pelo client.
-    if old.status = 'pending_documents'
+    if old.status in ('pending_documents', 'pending')
        and new.status = 'pending_review'
        and old.profile_id = auth.uid()
        and public.documentos_completos(old.id)
@@ -204,7 +204,7 @@ begin
 
     -- Identidade só é editável enquanto o cadastro ainda está juntando
     -- documentos ou voltou rejeitado para correção.
-    if old.status not in ('pending_documents', 'rejected') then
+    if old.status not in ('pending_documents', 'pending', 'rejected') then
       new.crp_number := old.crp_number;
       new.cpf := old.cpf;
       new.full_name_document := old.full_name_document;

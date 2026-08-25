@@ -86,7 +86,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-slate-50">
       <Header />
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
         <div className="bg-teal-700 rounded-2xl p-6 text-white mb-8 flex items-center gap-4">
           <span className="w-14 h-14 rounded-full bg-teal-600 flex items-center justify-center text-xl font-serif overflow-hidden flex-shrink-0 border-2 border-teal-400">
             {profile?.avatar_url ? (
@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
         {role !== 'admin' && (
           <>
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                 <div className="text-3xl font-serif text-slate-800">{realizadas}</div>
                 <div className="text-sm text-slate-500 mt-1">Sessões realizadas</div>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           </>
         )}
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {role === 'patient' && (
             <>
               <AcaoCard

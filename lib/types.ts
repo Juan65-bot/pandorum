@@ -248,3 +248,11 @@ export const DURACAO_SESSAO_MINUTOS = 50
 
 /** Valor fixo por sessão, definido pela plataforma — psicólogos não podem alterar. */
 export const PRECO_SESSAO_PADRAO = 150
+
+/**
+ * Comissão da plataforma sobre cada sessão paga (ver termos aceitos pelo psicólogo).
+ * Mora aqui, e não em lib/stripe.ts, porque telas client precisam do valor para
+ * exibir o cálculo do cancelamento — importar de lib/stripe arrastaria o SDK do
+ * Stripe inteiro para o bundle do browser.
+ */
+export const TAXA_PLATAFORMA = 0.3

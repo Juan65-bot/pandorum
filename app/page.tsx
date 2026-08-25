@@ -27,28 +27,28 @@ export default function Home() {
       <Header />
 
       {/* HERO */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-24">
+      <section className="flex flex-col items-center justify-center text-center px-5 sm:px-6 py-16 sm:py-24">
         <span className="text-xs font-medium text-teal-600 bg-teal-50 px-4 py-1.5 rounded-full mb-6">
           Plataforma de psicologia online
         </span>
-        <h2 className="text-5xl font-serif text-slate-800 max-w-2xl leading-tight mb-6">
+        <h1 className="text-3xl sm:text-5xl font-serif text-slate-800 max-w-2xl leading-tight mb-6">
           Cuide da sua saúde mental com quem entende
-        </h2>
-        <p className="text-lg text-slate-500 max-w-xl mb-10">
+        </h1>
+        <p className="text-base sm:text-lg text-slate-500 max-w-xl mb-8 sm:mb-10">
           Conectamos você aos melhores psicólogos do Brasil. Sessões online, seguras e acessíveis.
         </p>
-        <div className="flex gap-4">
-          <Link href="/auth/register" className="px-8 py-3 text-white bg-teal-700 rounded-full font-medium hover:bg-teal-800">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto max-w-xs sm:max-w-none">
+          <Link href="/auth/register" className="px-8 py-3 text-white bg-teal-700 rounded-full font-medium hover:bg-teal-800 text-center focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
             Começar agora
           </Link>
-          <Link href="/psicologos" className="px-8 py-3 text-teal-700 border border-teal-200 rounded-full font-medium hover:bg-teal-50">
+          <Link href="/psicologos" className="px-8 py-3 text-teal-700 border border-teal-200 rounded-full font-medium hover:bg-teal-50 text-center focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
             Ver psicólogos
           </Link>
         </div>
       </section>
 
       {/* STATS */}
-      <section className="flex justify-center gap-16 py-12 bg-white border-y border-slate-100">
+      <section className="grid grid-cols-2 sm:flex sm:justify-center gap-8 sm:gap-16 px-5 py-10 sm:py-12 bg-white border-y border-slate-100">
         <div className="text-center">
           <div className="text-3xl font-serif text-slate-800">500+</div>
           <div className="text-sm text-slate-500 mt-1">Psicólogos cadastrados</div>
@@ -68,9 +68,9 @@ export default function Home() {
       </section>
 
       {/* COMO FUNCIONA */}
-      <section className="px-8 py-20 max-w-4xl mx-auto">
+      <section className="px-5 sm:px-8 py-14 sm:py-20 max-w-4xl mx-auto">
         <h3 className="text-3xl font-serif text-slate-800 text-center mb-12">Como funciona</h3>
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
           <div className="text-center">
             <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-teal-600">
               <Search className="w-5 h-5" />
@@ -96,10 +96,10 @@ export default function Home() {
       </section>
 
       {/* DEPOIMENTOS */}
-      <section className="px-8 py-20 bg-white border-y border-slate-100">
+      <section className="px-5 sm:px-8 py-14 sm:py-20 bg-white border-y border-slate-100">
         <h3 className="text-3xl font-serif text-slate-800 text-center mb-2">O que dizem nossos pacientes</h3>
         <p className="text-center text-slate-500 text-sm mb-12">Histórias reais de quem já cuida da saúde mental pelo Pandorum</p>
-        <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6">
           {DEPOIMENTOS.map((d) => (
             <div key={d.nome} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
               <Quote className="w-5 h-5 text-teal-300 mb-3" />
@@ -117,7 +117,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="px-8 py-20 max-w-4xl mx-auto">
+      <section className="px-5 sm:px-8 py-14 sm:py-20 max-w-4xl mx-auto">
         <h3 className="text-3xl font-serif text-slate-800 text-center mb-12">Perguntas frequentes</h3>
         <FAQAccordion />
       </section>

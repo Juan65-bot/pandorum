@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { formatarDataHora, formatarPreco, capitalizarNome, cn } from '@/lib/utils'
 import { podeEntrarNaSala } from '@/lib/scheduling'
 import RescheduleCalendar from '@/components/RescheduleCalendar'
+import CancelamentoDialog from '@/components/CancelamentoDialog'
+import { cancelamentoAindaGratuito } from '@/lib/cancelamento'
 import type { Appointment, Role } from '@/lib/types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,7 +35,7 @@ export default function SessionCard({
   precoSessao?: number
   onChange: () => void
 }) {
-  const [cancelando, setCancelando] = useState(false)
+  const [mostrarCancelamento, setMostrarCancelamento] = useState(false)
   const [mostrarAvaliacao, setMostrarAvaliacao] = useState(false)
   const [mostrarNotas, setMostrarNotas] = useState(false)
   const [mostrarReagendar, setMostrarReagendar] = useState(false)
@@ -46,17 +48,7 @@ export default function SessionCard({
   const futura = new Date(appointment.starts_at) > new Date()
   const podeEntrar = appointment.status === 'confirmed' && podeEntrarNaSala(appointment.starts_at, appointment.ends_at)
   const podeCancelar = futura && ['scheduled', 'confirmed'].includes(appointment.status)
-
-  async function cancelar() {
-    if (!confirm('Tem certeza que deseja cancelar essa sessão?')) return
-    setCancelando(true)
-    await supabase
-      .from('appointments')
-      .update({ status: 'cancelled', cancelled_reason: `Cancelada por ${role === 'psychologist' ? 'psicólogo(a)' : 'paciente'}` })
-      .eq('id', appointment.id)
-    setCancelando(false)
-    onChange()
-  }
+  const cancelamentoGratuito = cancelamentoAindaGratuito(appointment.starts_at)
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -129,15 +121,27 @@ export default function SessionCard({
         )}
         {podeCancelar && (
           <button
-            onClick={cancelar}
-            disabled={cancelando}
-            className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-xs rounded-full hover:bg-red-50 disabled:opacity-50"
+            onClick={() => setMostrarCancelamento(true)}
+            className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 text-xs rounded-full hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
             Cancelar
+            {role === 'patient' && !cancelamentoGratuito && (
+              <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">taxa</span>
+            )}
           </button>
         )}
       </div>
+
+      {mostrarCancelamento && (
+        <CancelamentoDialog
+          appointmentId={appointment.id}
+          startsAt={appointment.starts_at}
+          canceladoPor={role === 'psychologist' ? 'psychologist' : role === 'admin' ? 'admin' : 'patient'}
+          onFechar={() => setMostrarCancelamento(false)}
+          onCancelado={onChange}
+        />
+      )}
 
       {mostrarReagendar && (
         <RescheduleCalendar

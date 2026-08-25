@@ -124,7 +124,7 @@ export default function RescheduleCalendar({
           </div>
 
           {diaAtivo && (
-            <div className="grid grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
               {slotsPorDia.get(diaAtivo)!.map((slot) => {
                 const ativo = horarioSelecionado?.getTime() === slot.getTime()
                 return (

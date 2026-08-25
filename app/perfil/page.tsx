@@ -105,7 +105,7 @@ export default function PerfilPage() {
     <main className="min-h-screen bg-slate-50">
       <Header backHref="/dashboard" />
 
-      <div className="max-w-2xl mx-auto px-8 py-10">
+      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
         <h2 className="text-3xl font-serif text-slate-800 mb-2">Meu perfil</h2>
         <p className="text-slate-500 text-sm mb-8">Complete seus dados para uma melhor experiência</p>
 

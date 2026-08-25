@@ -153,7 +153,7 @@ export default function CompletarPerfilPsicologoPage() {
     <main className="min-h-screen bg-slate-50">
       <Header backHref="/dashboard" />
 
-      <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
+      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8 sm:py-10 space-y-6">
         <div>
           <h2 className="text-3xl font-serif text-slate-800 mb-2">Meu perfil profissional</h2>
           <p className="text-slate-500 text-sm">

@@ -41,6 +41,22 @@ export async function POST(request: NextRequest) {
     if (!appointmentId) return
 
     await admin.from('payments').update({ status: 'failed' }).eq('appointment_id', appointmentId)
+
+    // Libera o horário. Sem isso o agendamento ficava em 'scheduled' para
+    // sempre depois de um checkout abandonado, e gerarSlotsDisponiveis trata
+    // 'scheduled' como ocupado — o horário sumia da agenda do psicólogo sem
+    // nunca ter sido pago. Só mexe em quem ainda não foi confirmado, para um
+    // evento fora de ordem não derrubar sessão já paga.
+    const { error } = await admin
+      .from('appointments')
+      .update({
+        status: 'cancelled',
+        cancelled_reason: 'Pagamento não concluído — horário liberado automaticamente',
+      })
+      .eq('id', appointmentId)
+      .eq('status', 'scheduled')
+
+    if (error) console.error('Erro ao liberar horário de checkout expirado:', appointmentId, error)
   }
 
   switch (evento.type) {

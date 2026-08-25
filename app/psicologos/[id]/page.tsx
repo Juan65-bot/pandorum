@@ -27,8 +27,8 @@ export default async function PsicologoDetalhePage({ params }: { params: Promise
     <main className="min-h-screen bg-slate-50">
       <Header backHref="/psicologos" backLabel="Ver outros psicólogos" />
 
-      <div className="max-w-4xl mx-auto px-8 py-10 grid grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-6">
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-medium text-2xl overflow-hidden flex-shrink-0">

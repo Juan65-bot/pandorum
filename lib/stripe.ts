@@ -11,8 +11,9 @@ export function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY)
 }
 
-/** Comissão da plataforma sobre cada sessão paga (ver termos de aceite do psicólogo). */
-export const TAXA_PLATAFORMA = 0.3
+// Reexportado de lib/types para manter um único ponto de verdade — o valor mora
+// lá porque componentes client também precisam dele (ver comentário em types.ts).
+export { TAXA_PLATAFORMA } from '@/lib/types'
 
 interface CriarCheckoutParams {
   appointmentId: string
