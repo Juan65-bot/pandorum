@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import AuthShell from '@/components/AuthShell'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
@@ -33,14 +34,7 @@ export default function EsqueciSenhaPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-serif text-slate-800">
-            Pan<span className="text-teal-600">dorum</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Recuperar senha</p>
-        </div>
+    <AuthShell subtitulo="Recuperar senha">
 
         {enviado ? (
           <div className="bg-teal-50 text-teal-700 text-sm px-3 py-3 rounded-lg">
@@ -80,7 +74,6 @@ export default function EsqueciSenhaPage() {
         <p className="text-center text-sm text-slate-500 mt-6">
           <Link href="/auth/login" className="text-teal-700 font-medium">Voltar ao login</Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   )
 }

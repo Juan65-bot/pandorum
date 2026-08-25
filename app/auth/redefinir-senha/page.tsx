@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import AuthShell from '@/components/AuthShell'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -30,14 +31,7 @@ export default function RedefinirSenhaPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-serif text-slate-800">
-            Pan<span className="text-teal-600">dorum</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Defina sua nova senha</p>
-        </div>
+    <AuthShell subtitulo="Defina sua nova senha">
 
         {erro && (
           <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg mb-4">{erro}</div>
@@ -75,7 +69,6 @@ export default function RedefinirSenhaPage() {
             {isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
           </button>
         </form>
-      </div>
-    </main>
+    </AuthShell>
   )
 }

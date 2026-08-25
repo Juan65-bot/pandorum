@@ -1,5 +1,6 @@
 'use client'
 import { Suspense, useState } from 'react'
+import AuthShell from '@/components/AuthShell'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
@@ -44,14 +45,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-serif text-slate-800">
-            Pan<span className="text-teal-600">dorum</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Bem-vindo de volta</p>
-        </div>
+    <AuthShell subtitulo="Bem-vindo de volta">
 
         {confirmacaoPendente && (
           <div className="bg-teal-50 text-teal-700 text-sm px-3 py-2 rounded-lg mb-4">
@@ -105,8 +99,7 @@ function LoginForm() {
           Não tem conta?{' '}
           <Link href="/auth/register" className="text-teal-700 font-medium">Cadastre-se</Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   )
 }
 

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import AuthShell from '@/components/AuthShell'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
@@ -61,14 +62,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-serif text-slate-800">
-            Pan<span className="text-teal-600">dorum</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Crie sua conta</p>
-        </div>
+    <AuthShell subtitulo="Crie sua conta">
 
         <div className="flex gap-3 mb-6">
           <button
@@ -146,7 +140,6 @@ export default function RegisterPage() {
           Já tem conta?{' '}
           <Link href="/auth/login" className="text-teal-700 font-medium">Entrar</Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   )
 }
