@@ -17,6 +17,7 @@ function LoginForm() {
 
   const confirmacaoPendente = searchParams.get('confirmacao') === '1'
   const proximaRotaExplicita = searchParams.get('next')
+  const linkInvalido = searchParams.get('erro') === 'link_invalido'
 
   const {
     register,
@@ -50,6 +51,13 @@ function LoginForm() {
         {confirmacaoPendente && (
           <div className="bg-teal-50 text-teal-700 text-sm px-3 py-2 rounded-lg mb-4">
             Enviamos um e-mail de confirmação. Confirme sua conta antes de entrar.
+          </div>
+        )}
+
+        {linkInvalido && (
+          <div className="bg-amber-50 text-amber-800 text-sm px-3 py-2 rounded-lg mb-4">
+            Esse link de e-mail expirou ou já foi usado.{' '}
+            <Link href="/auth/esqueci-senha" className="font-medium underline">Pedir um novo</Link>
           </div>
         )}
 

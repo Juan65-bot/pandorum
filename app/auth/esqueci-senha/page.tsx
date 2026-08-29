@@ -22,7 +22,12 @@ export default function EsqueciSenhaPage() {
     setErro('')
     const origin = window.location.origin
     const { error } = await supabase.auth.resetPasswordForEmail(dados.email, {
-      redirectTo: `${origin}/auth/callback?next=/auth/redefinir-senha`,
+      // Aponta direto para a tela de nova senha, sem passar pelo /auth/callback.
+      // Esse fluxo pode devolver o token no fragmento da URL (#access_token=...),
+      // que o navegador nunca envia ao servidor — uma rota de servidor no meio do
+      // caminho enxerga a query vazia e manda o usuário para o login, que era
+      // exatamente o "erro" relatado. O cliente do browser resolve as duas formas.
+      redirectTo: `${origin}/auth/redefinir-senha`,
     })
 
     if (error) {
