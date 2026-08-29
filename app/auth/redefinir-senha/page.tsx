@@ -11,6 +11,30 @@ import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/validation'
 
 type Estado = 'verificando' | 'pronto' | 'invalido'
 
+/**
+ * O Supabase responde sempre em inglês. Estas são as mensagens que aparecem de
+ * fato nesta tela — vistas nos testes contra produção, não adivinhadas.
+ */
+function traduzirErroAuth(mensagem: string): string {
+  const m = mensagem.toLowerCase()
+
+  if (m.includes('different from the old password')) {
+    return 'A nova senha precisa ser diferente da senha atual.'
+  }
+  if (m.includes('should be at least') || m.includes('password is too short')) {
+    return 'A senha é curta demais. Use no mínimo 8 caracteres.'
+  }
+  if (m.includes('session') || m.includes('jwt') || m.includes('token')) {
+    return 'Seu link de redefinição expirou. Peça um novo e tente de novo.'
+  }
+  if (m.includes('rate limit') || m.includes('too many')) {
+    return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'
+  }
+
+  console.error('Erro não traduzido ao redefinir senha:', mensagem)
+  return 'Não foi possível salvar a nova senha. Tente novamente em instantes.'
+}
+
 export default function RedefinirSenhaPage() {
   const [estado, setEstado] = useState<Estado>('verificando')
   const [erro, setErro] = useState('')
@@ -28,15 +52,16 @@ export default function RedefinirSenhaPage() {
    *   • PKCE          -> "?code=..." na query
    *   • implícito     -> "#access_token=...&refresh_token=..." no fragmento
    *
-   * O cliente do browser resolve o primeiro sozinho (detectSessionInUrl), mas
-   * NÃO o segundo: com flowType 'pkce' — o padrão do createBrowserClient — ele
-   * só olha para "?code=" e ignora o fragmento. Verificado em produção: a
-   * página abria com os tokens na URL e ainda assim dizia "link inválido".
-   * Por isso o fragmento é lido à mão aqui e entregue ao setSession.
+   * O caminho normal hoje não é nenhum dos dois: o template de e-mail de
+   * recuperação aponta para /auth/callback com "token_hash", que é verificado
+   * NO SERVIDOR e já grava os cookies de sessão antes de redirecionar para cá.
+   * Quando chega por ali, o getSession() abaixo encontra a sessão de primeira.
    *
-   * O fragmento também é limpo da barra de endereço depois de usado — ele
-   * carrega um access_token válido por 1 hora, e não convém que fique no
-   * histórico do navegador nem seja copiado junto ao compartilhar a URL.
+   * O tratamento de fragmento continua como rede de segurança, para o caso de
+   * o template ser alterado de volta para {{ .ConfirmationURL }}. Vale registrar
+   * que ele não foi validado com sucesso em produção: o setSession não chegou a
+   * persistir a sessão nos testes, e a causa não foi isolada. Se um dia esse
+   * caminho voltar a ser o principal, ele precisa ser investigado antes.
    */
   useEffect(() => {
     let ativo = true
@@ -92,11 +117,7 @@ export default function RedefinirSenhaPage() {
     const { error } = await supabase.auth.updateUser({ password: dados.password })
 
     if (error) {
-      setErro(
-        error.message.toLowerCase().includes('session')
-          ? 'Seu link de redefinição expirou. Peça um novo e tente de novo.'
-          : error.message
-      )
+      setErro(traduzirErroAuth(error.message))
       return
     }
 
