@@ -24,13 +24,19 @@ export default function RedefinirSenhaPage() {
   } = useForm<ResetPasswordInput>({ resolver: zodResolver(resetPasswordSchema) })
 
   /**
-   * O link do e-mail chega de duas formas conforme o fluxo que o gerou: o PKCE
-   * põe "?code=" na query, e o fluxo implícito põe "#access_token=..." no
-   * fragmento. O fragmento nunca é enviado ao servidor, então quem resolve os
-   * dois é o cliente do browser — o supabase-js faz isso sozinho ao carregar
-   * (detectSessionInUrl), mas leva um instante, e é por isso que esta página
-   * espera a sessão aparecer antes de liberar o formulário em vez de deixar o
-   * usuário digitar a senha nova para só então descobrir que não havia sessão.
+   * O link do e-mail chega em duas formas conforme o fluxo que o gerou:
+   *   • PKCE          -> "?code=..." na query
+   *   • implícito     -> "#access_token=...&refresh_token=..." no fragmento
+   *
+   * O cliente do browser resolve o primeiro sozinho (detectSessionInUrl), mas
+   * NÃO o segundo: com flowType 'pkce' — o padrão do createBrowserClient — ele
+   * só olha para "?code=" e ignora o fragmento. Verificado em produção: a
+   * página abria com os tokens na URL e ainda assim dizia "link inválido".
+   * Por isso o fragmento é lido à mão aqui e entregue ao setSession.
+   *
+   * O fragmento também é limpo da barra de endereço depois de usado — ele
+   * carrega um access_token válido por 1 hora, e não convém que fique no
+   * histórico do navegador nem seja copiado junto ao compartilhar a URL.
    */
   useEffect(() => {
     let ativo = true
@@ -40,21 +46,40 @@ export default function RedefinirSenhaPage() {
       if (session || evento === 'PASSWORD_RECOVERY') setEstado('pronto')
     })
 
-    supabase.auth.getSession().then(({ data }) => {
+    async function estabelecerSessao() {
+      const { data: atual } = await supabase.auth.getSession()
       if (!ativo) return
-      if (data.session) {
-        setEstado('pronto')
-        return
-      }
-      // dá uma janela para o supabase-js processar o token da URL antes de desistir
-      setTimeout(() => {
-        if (!ativo) return
-        supabase.auth.getSession().then(({ data: d2 }) => {
-          if (!ativo) return
-          setEstado(d2.session ? 'pronto' : 'invalido')
+      if (atual.session) { setEstado('pronto'); return }
+
+      const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : ''
+      const params = new URLSearchParams(hash)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
         })
+        if (!ativo) return
+        if (!error) {
+          window.history.replaceState(null, '', window.location.pathname)
+          setEstado('pronto')
+          return
+        }
+        console.error('Falha ao abrir sessão a partir do link de recuperação:', error.message)
+      }
+
+      // sobra o caso do "?code=", que o supabase-js troca sozinho mas leva um instante
+      setTimeout(async () => {
+        if (!ativo) return
+        const { data } = await supabase.auth.getSession()
+        if (!ativo) return
+        setEstado(data.session ? 'pronto' : 'invalido')
       }, 1500)
-    })
+    }
+
+    estabelecerSessao()
 
     return () => {
       ativo = false
