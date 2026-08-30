@@ -3,11 +3,17 @@ import Link from 'next/link'
 import { CalendarCheck, CalendarX, UserCheck, Clock, Wallet, HelpCircle } from 'lucide-react'
 import Header from '@/components/Header'
 import { formatarPreco } from '@/lib/utils'
-import { PRECO_SESSAO_PADRAO, TAXA_PLATAFORMA, DURACAO_SESSAO_MINUTOS } from '@/lib/types'
+import {
+  PRECO_SESSAO_PADRAO,
+  DURACAO_SESSAO_MINUTOS,
+  REPASSE_PSICOLOGO_CANCELAMENTO,
+  RETENCAO_PLATAFORMA_CANCELAMENTO,
+} from '@/lib/types'
 import {
   HORAS_LIMITE_CANCELAMENTO,
   VALOR_MULTA_CANCELAMENTO_TARDIO,
   PERCENTUAL_MULTA_CANCELAMENTO_TARDIO,
+  MINUTOS_ARREPENDIMENTO,
 } from '@/lib/cancelamento'
 
 export const metadata: Metadata = {
@@ -17,8 +23,8 @@ export const metadata: Metadata = {
 }
 
 const percentual = (PERCENTUAL_MULTA_CANCELAMENTO_TARDIO * 100).toFixed(0)
-const repasse = Math.round(VALOR_MULTA_CANCELAMENTO_TARDIO * (1 - TAXA_PLATAFORMA) * 100) / 100
-const comissao = Math.round(VALOR_MULTA_CANCELAMENTO_TARDIO * TAXA_PLATAFORMA * 100) / 100
+const repasse = REPASSE_PSICOLOGO_CANCELAMENTO
+const comissao = RETENCAO_PLATAFORMA_CANCELAMENTO
 
 export default function PoliticaCancelamentoPage() {
   return (
@@ -73,6 +79,21 @@ export default function PoliticaCancelamentoPage() {
               e recebe o reembolso integral de qualquer valor já pago.
             </p>
           </Regra>
+
+          <Regra
+            icone={<Clock className="w-5 h-5" />}
+            cor="teal"
+            titulo={`Acabou de agendar? Você tem ${MINUTOS_ARREPENDIMENTO} minutos`}
+          >
+            <p>
+              Cancelamentos feitos em até <strong>{MINUTOS_ARREPENDIMENTO} minutos após o agendamento</strong> são
+              sempre gratuitos, mesmo que a sessão seja logo em seguida.
+            </p>
+            <p>
+              É o que protege quem marca uma sessão para daqui a poucas horas: sem essa janela, o horário já nasceria
+              dentro do prazo de cobrança e desmarcar cinco minutos depois de marcar custaria a taxa integral.
+            </p>
+          </Regra>
         </section>
 
         {/* para onde vai o dinheiro */}
@@ -100,13 +121,13 @@ export default function PoliticaCancelamentoPage() {
                 </tr>
                 <tr>
                   <th scope="row" className="text-left font-normal text-slate-600 py-2">
-                    Repassado ao psicólogo ({((1 - TAXA_PLATAFORMA) * 100).toFixed(0)}%)
+                    Repassado ao psicólogo
                   </th>
                   <td className="text-right font-medium text-teal-700 py-2">{formatarPreco(repasse)}</td>
                 </tr>
                 <tr>
                   <th scope="row" className="text-left font-normal text-slate-600 py-2">
-                    Retido pela plataforma ({(TAXA_PLATAFORMA * 100).toFixed(0)}%)
+                    Retido pela plataforma
                   </th>
                   <td className="text-right font-medium text-slate-700 py-2">{formatarPreco(comissao)}</td>
                 </tr>

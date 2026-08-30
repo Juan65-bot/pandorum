@@ -125,10 +125,13 @@ function PagamentoContent({ params }: { params: Promise<{ id: string }> }) {
               {iniciandoPagamento ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
               {iniciandoPagamento ? 'Redirecionando...' : 'Pagar com PIX ou cartão'}
             </button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <QrCode className="w-3.5 h-3.5" />
-              Você será redirecionado ao ambiente seguro do Stripe
-            </p>
+            <div className="flex items-start gap-1.5 text-xs text-slate-500 bg-teal-50/60 rounded-xl px-3 py-2.5">
+              <QrCode className="w-3.5 h-3.5 text-teal-600 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong className="text-teal-800">PIX é a forma mais rápida</strong> — a confirmação é instantânea e a
+                sessão fica garantida na hora. Cartão de crédito também é aceito.
+              </span>
+            </div>
           </>
         )}
 

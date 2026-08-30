@@ -8,6 +8,7 @@ import {
   emailDocumentoAdicional,
 } from '@/lib/email'
 import { capitalizarNome } from '@/lib/utils'
+import { asaasConfigurado, criarSubcontaPsicologo, AsaasError } from '@/lib/asaas'
 import { CHECKLIST_VERIFICACAO, type PsychologistStatus, type VerificationAction } from '@/lib/types'
 
 type Acao = 'aprovar' | 'rejeitar' | 'solicitar_documento' | 'suspender' | 'reativar'
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
   const { data: psicologo } = await supabase
     .from('psychologists')
-    .select('id, status, profiles!profile_id(full_name, email)')
+    .select('id, status, asaas_wallet_id, full_name_document, cpf, birth_date, income_value, postal_code, address_street, address_number, address_complement, address_district, address_city, address_state, profiles!profile_id(full_name, email, phone)')
     .eq('id', psychologistId)
     .maybeSingle()
 
@@ -122,6 +123,74 @@ export async function POST(request: NextRequest) {
     patch.rejection_reason = motivoLimpo || null
   }
 
+  // ---------- subconta Asaas ----------
+  // Criada aqui, na aprovação, e não em algum passo que o psicólogo precise
+  // fazer sozinho: ele não deve ter que sair do Pandorum para receber.
+  //
+  // Falhar aqui NÃO impede a aprovação. O cadastro dele está correto — o que
+  // falta é uma integração externa, e travar a aprovação por isso deixaria um
+  // profissional legítimo parado por um motivo que ele não pode resolver. O
+  // erro fica gravado em asaas_account_error para o admin ver na tela, e a
+  // rota de cobrança já recusa agendamento com quem não tem walletId.
+  let avisoSubconta: string | null = null
+
+  if (acao === 'aprovar' && !psicologo.asaas_wallet_id) {
+    const perfilPsi = psicologo.profiles as unknown as {
+      full_name: string | null; email: string | null; phone: string | null
+    } | null
+
+    const faltando = [
+      !psicologo.cpf && 'CPF',
+      !psicologo.birth_date && 'data de nascimento',
+      !psicologo.postal_code && 'CEP',
+      !psicologo.address_street && 'logradouro',
+      !psicologo.address_number && 'número',
+      !psicologo.address_district && 'bairro',
+      !psicologo.address_city && 'cidade',
+      !psicologo.address_state && 'estado',
+      !psicologo.income_value && 'renda mensal',
+      !perfilPsi?.phone && 'telefone',
+      !perfilPsi?.email && 'e-mail',
+    ].filter(Boolean) as string[]
+
+    if (faltando.length) {
+      avisoSubconta = `Conta de recebimento não criada — faltam dados no cadastro: ${faltando.join(', ')}.`
+      patch.asaas_account_error = avisoSubconta
+    } else if (!asaasConfigurado()) {
+      avisoSubconta = 'Conta de recebimento não criada: ASAAS_API_KEY não configurada.'
+      patch.asaas_account_error = avisoSubconta
+    } else {
+      try {
+        const subconta = await criarSubcontaPsicologo({
+          nome: psicologo.full_name_document || perfilPsi!.full_name || 'Psicólogo',
+          email: perfilPsi!.email!,
+          cpf: psicologo.cpf!,
+          nascimento: psicologo.birth_date!,
+          telefone: perfilPsi!.phone!,
+          rendaMensal: Number(psicologo.income_value),
+          cep: psicologo.postal_code!,
+          logradouro: psicologo.address_street!,
+          numero: psicologo.address_number!,
+          complemento: psicologo.address_complement,
+          bairro: psicologo.address_district!,
+          cidade: psicologo.address_city!,
+          estado: psicologo.address_state!,
+        })
+
+        patch.asaas_account_id = subconta.id
+        patch.asaas_wallet_id = subconta.walletId
+        patch.asaas_account_error = null
+      } catch (erro) {
+        const detalhe = erro instanceof AsaasError ? erro.message : 'erro inesperado'
+        console.error('Falha ao criar subconta Asaas para', psychologistId, detalhe)
+        avisoSubconta =
+          'Cadastro aprovado, mas a conta de recebimento não pôde ser criada. ' +
+          'Ele não conseguirá receber agendamentos até isso ser resolvido. Detalhe: ' + detalhe
+        patch.asaas_account_error = detalhe
+      }
+    }
+  }
+
   const { error: erroUpdate } = await supabase.from('psychologists').update(patch).eq('id', psychologistId)
 
   if (erroUpdate) {
@@ -168,5 +237,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, novoStatus, emailEnviado, auditoriaRegistrada: !erroLog })
+  return NextResponse.json({ ok: true, novoStatus, emailEnviado, auditoriaRegistrada: !erroLog, avisoSubconta })
 }

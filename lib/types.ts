@@ -58,6 +58,18 @@ export interface Psychologist {
   additional_document_request: string | null
   verification_terms_accepted_at: string | null
   verification_terms_version: string | null
+  asaas_wallet_id: string | null
+  asaas_account_id: string | null
+  asaas_account_error: string | null
+  postal_code: string | null
+  address_street: string | null
+  address_number: string | null
+  address_complement: string | null
+  address_district: string | null
+  address_city: string | null
+  address_state: string | null
+  income_value: number | null
+  withdrawal_reminder: PreferenciaLembreteSaque | null
   profiles?: Profile
 }
 
@@ -175,9 +187,33 @@ export interface Payment {
   platform_fee: number
   psy_payout: number
   status: PaymentStatus
-  stripe_payment_id: string | null
+  gateway_payment_id: string | null
+  gateway_invoice_url: string | null
+  billing_type: BillingType | null
+  net_value: number | null
+  due_date: string | null
   paid_at: string | null
+  is_late_cancellation: boolean
+  refunded_amount: number
+  cancellation_fee: number
 }
+
+/** Meios de pagamento aceitos. UNDEFINED deixa o paciente escolher no checkout do Asaas. */
+export type BillingType = 'PIX' | 'CREDIT_CARD' | 'UNDEFINED'
+
+/** Quando o psicólogo quer ser lembrado de que há saldo para sacar. */
+export type PreferenciaLembreteSaque = 'imediato' | 'semanal' | 'mensal' | 'nunca'
+
+export const PREFERENCIAS_LEMBRETE_SAQUE: {
+  valor: PreferenciaLembreteSaque
+  label: string
+  descricao: string
+}[] = [
+  { valor: 'imediato', label: 'Assim que entrar', descricao: 'Um e-mail sempre que um pagamento cair na sua conta.' },
+  { valor: 'semanal', label: 'Toda sexta-feira', descricao: 'Um resumo semanal do que está disponível para saque.' },
+  { valor: 'mensal', label: 'Dia 20 de cada mês', descricao: 'Um lembrete mensal, perto do fechamento.' },
+  { valor: 'nunca', label: 'Não quero lembretes', descricao: 'Você continua podendo sacar quando quiser.' },
+]
 
 export interface AvailabilitySlot {
   id: string
@@ -250,9 +286,45 @@ export const DURACAO_SESSAO_MINUTOS = 50
 export const PRECO_SESSAO_PADRAO = 150
 
 /**
- * Comissão da plataforma sobre cada sessão paga (ver termos aceitos pelo psicólogo).
- * Mora aqui, e não em lib/stripe.ts, porque telas client precisam do valor para
- * exibir o cálculo do cancelamento — importar de lib/stripe arrastaria o SDK do
- * Stripe inteiro para o bundle do browser.
+ * Repartição do dinheiro. Tudo em REAIS, nunca em percentual — e isso é decisão
+ * de arquitetura, não estilo.
+ *
+ * No split do Asaas, um `percentualValue` incide sobre o valor JÁ DESCONTADO das
+ * taxas do gateway. Como a taxa do PIX (fixa) e a do cartão (percentual) são
+ * diferentes, o mesmo percentual entregaria valores distintos ao psicólogo
+ * conforme o meio de pagamento escolhido pelo paciente — algo que ele não
+ * controla e não teria como prever. Com `fixedValue`, o psicólogo recebe sempre
+ * exatamente o mesmo, e a taxa do gateway sai inteira da parte da plataforma.
+ *
+ * Estas constantes moram aqui (e não em lib/asaas.ts) porque telas client
+ * precisam delas para exibir os valores antes de confirmar; importar de
+ * lib/asaas arrastaria código de servidor para o bundle do browser.
  */
-export const TAXA_PLATAFORMA = 0.3
+
+/** O psicólogo recebe isto por sessão paga, independente do meio de pagamento. */
+export const REPASSE_PSICOLOGO_SESSAO = 100
+
+/** Fica com a plataforma por sessão, ANTES de descontar a taxa do gateway. */
+export const RETENCAO_PLATAFORMA_SESSAO = PRECO_SESSAO_PADRAO - REPASSE_PSICOLOGO_SESSAO
+
+/** Cobrado do paciente quando ele cancela com menos de 24h (50% da sessão). */
+export const VALOR_MULTA_CANCELAMENTO_TARDIO = 75
+
+/** Parte da multa que vai para o psicólogo — mesma proporção de uma sessão realizada. */
+export const REPASSE_PSICOLOGO_CANCELAMENTO = 50
+
+/** Parte da multa que fica com a plataforma, antes da taxa do gateway. */
+export const RETENCAO_PLATAFORMA_CANCELAMENTO =
+  VALOR_MULTA_CANCELAMENTO_TARDIO - REPASSE_PSICOLOGO_CANCELAMENTO
+
+/**
+ * Antecedência mínima com que a cobrança vence, em horas antes da sessão.
+ *
+ * A cobrança é criada no agendamento mas só vence aqui, e é isso que fecha o
+ * buraco do estorno: como o split do Asaas é instantâneo, dinheiro que entrasse
+ * no agendamento já estaria na conta do psicólogo dias antes da sessão, e um
+ * cancelamento gratuito exigiria puxar de volta um valor que ele talvez já
+ * tivesse sacado. Vencendo junto com o fim da janela de cancelamento gratuito,
+ * quem cancela a tempo simplesmente nunca pagou.
+ */
+export const HORAS_ANTES_VENCIMENTO_COBRANCA = 24

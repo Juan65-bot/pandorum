@@ -1,18 +1,30 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FileCheck, ShieldCheck, Percent, HeartHandshake } from 'lucide-react'
 import Header from '@/components/Header'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
+import { formatarPreco } from '@/lib/utils'
+import {
+  PRECO_SESSAO_PADRAO,
+  REPASSE_PSICOLOGO_SESSAO,
+  RETENCAO_PLATAFORMA_SESSAO,
+  REPASSE_PSICOLOGO_CANCELAMENTO,
+  VALOR_MULTA_CANCELAMENTO_TARDIO,
+} from '@/lib/types'
 
-const VERSAO_TERMOS = '1.0'
+// 2.0: repasse deixou de ser 70% e virou R$ 100 fixos por sessão (troca do
+// gateway para o Asaas). Quem aceitou a 1.0 concordou com outra coisa.
+const VERSAO_TERMOS = '2.0'
 
 export default function TermosPsicologoPage() {
   const [aceito, setAceito] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [loading, setLoading] = useState(true)
   const [jaAceitou, setJaAceitou] = useState(false)
+  const [precisaReaceitar, setPrecisaReaceitar] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -27,8 +39,14 @@ export default function TermosPsicologoPage() {
         return
       }
 
-      if (user.user_metadata?.terms_accepted_at) {
+      // Aceite vale por VERSÃO, não pela mera existência de uma data. Quem
+      // aceitou a 1.0 concordou com repasse de 70%; a 2.0 diz R$ 100 fixos.
+      // Tratar os dois como equivalentes seria afirmar que ele aceitou termos
+      // financeiros que nunca leu.
+      if (user.user_metadata?.terms_accepted_at && user.user_metadata?.terms_version === VERSAO_TERMOS) {
         setJaAceitou(true)
+      } else if (user.user_metadata?.terms_accepted_at) {
+        setPrecisaReaceitar(true)
       }
 
       setLoading(false)
@@ -112,12 +130,28 @@ export default function TermosPsicologoPage() {
 
           <Secao
             icone={<Percent className="w-4 h-4" />}
-            titulo="4. Comissão da plataforma"
+            titulo="4. Quanto você recebe"
           >
             <p>
-              O Pandorum retém uma comissão de <strong>30% (trinta por cento)</strong> sobre o valor de cada sessão paga
-              através da plataforma, referente a processamento de pagamento, divulgação do seu perfil e infraestrutura
-              da videochamada. O restante (70%) é repassado a você.
+              A sessão custa <strong>{formatarPreco(PRECO_SESSAO_PADRAO)}</strong> ao paciente e você recebe{' '}
+              <strong>{formatarPreco(REPASSE_PSICOLOGO_SESSAO)} por sessão paga</strong>. É um valor fixo: não muda
+              conforme o paciente escolha pagar por PIX ou cartão. Os {formatarPreco(RETENCAO_PLATAFORMA_SESSAO)}{' '}
+              restantes ficam com o Pandorum e é de onde saem as taxas do meio de pagamento, a divulgação do seu perfil
+              e a infraestrutura da videochamada.
+            </p>
+            <p>
+              O repasse é <strong>automático e direto</strong>: quando o paciente paga, sua parte cai na sua conta de
+              recebimento no mesmo instante, sem depender de fechamento de mês. Você saca quando quiser.
+            </p>
+            <p>
+              Em caso de cancelamento do paciente com menos de 24 horas de antecedência, é cobrada uma taxa de{' '}
+              {formatarPreco(VALOR_MULTA_CANCELAMENTO_TARDIO)}, da qual{' '}
+              <strong>{formatarPreco(REPASSE_PSICOLOGO_CANCELAMENTO)} são repassados a você</strong> — o horário foi
+              reservado e não pôde ser oferecido a outro paciente. Cancelamentos feitos por você nunca geram cobrança
+              ao paciente. Detalhes em{' '}
+              <Link href="/politica-de-cancelamento" className="text-teal-700 underline">
+                política de cancelamento
+              </Link>.
             </p>
           </Secao>
         </div>
@@ -125,6 +159,13 @@ export default function TermosPsicologoPage() {
         {jaAceitou && (
           <div className="bg-teal-50 text-teal-700 text-sm px-4 py-3 rounded-xl mb-6">
             Você já aceitou esses termos anteriormente. Pode seguir para completar seu perfil.
+          </div>
+        )}
+
+        {precisaReaceitar && (
+          <div className="bg-amber-50 text-amber-800 text-sm px-4 py-3 rounded-xl mb-6">
+            <strong>O contrato mudou desde que você aceitou.</strong> A forma de repasse deixou de ser um percentual e
+            passou a ser um valor fixo por sessão. Leia a seção 4 e aceite novamente para continuar atendendo.
           </div>
         )}
 
@@ -138,7 +179,7 @@ export default function TermosPsicologoPage() {
           />
           <span className="text-sm text-slate-600">
             Li e aceito os Termos de Uso, a Política de Privacidade, o consentimento para atendimento online e a
-            comissão de 30% da plataforma descritos acima.
+            forma de repasse descrita acima.
           </span>
         </label>
 

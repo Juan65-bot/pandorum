@@ -5,7 +5,7 @@ import { Users, BadgeCheck, CalendarCheck, Wallet, Percent, Clock, ArrowRight } 
 import StatusBadge from '@/components/admin/StatusBadge'
 import { createClient } from '@/lib/supabase/client'
 import { formatarPreco, formatarDataHora, capitalizarNome } from '@/lib/utils'
-import { TAXA_PLATAFORMA } from '@/lib/stripe'
+import { RETENCAO_PLATAFORMA_SESSAO } from '@/lib/types'
 import type { Appointment, Psychologist } from '@/lib/types'
 
 interface Metricas {
@@ -93,7 +93,7 @@ export default function AdminOverviewPage() {
         <MetricCard icon={<Wallet className="w-4 h-4" />} label="Receita total" valor={formatarPreco(metricas.receitaTotal)} destaque />
         <MetricCard
           icon={<Percent className="w-4 h-4" />}
-          label={`Comissão da plataforma (${Math.round(TAXA_PLATAFORMA * 100)}%)`}
+          label={`Retido pela plataforma (R$ ${RETENCAO_PLATAFORMA_SESSAO} por sessão)`}
           valor={formatarPreco(metricas.comissaoTotal)}
           cor="purple"
         />

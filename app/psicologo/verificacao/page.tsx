@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { verificacaoIdentidadeSchema, type VerificacaoIdentidadeInput } from '@/lib/validation'
 import {
-  DOCUMENTOS_OBRIGATORIOS, UFS, PRECO_SESSAO_PADRAO,
+  DOCUMENTOS_OBRIGATORIOS, UFS, PRECO_SESSAO_PADRAO, REPASSE_PSICOLOGO_SESSAO,
   type Psychologist, type PsychologistDocument, type PsychologistStatus,
 } from '@/lib/types'
 import { cn, formatarCPF, formatarCRP, formatarData } from '@/lib/utils'
@@ -44,7 +44,7 @@ const DECLARACOES = [
     chave: 'contrato' as const,
     titulo: 'Contrato do psicólogo',
     texto:
-      'Li e aceito o contrato de parceria profissional do Pandorum, incluindo a comissão de 30% por sessão paga e as obrigações éticas previstas nas resoluções do CFP.',
+      `Li e aceito o contrato de parceria profissional do Pandorum, incluindo o repasse fixo de R$ ${REPASSE_PSICOLOGO_SESSAO},00 por sessão paga (de R$ ${PRECO_SESSAO_PADRAO},00 cobrados do paciente) e as obrigações éticas previstas nas resoluções do CFP.`,
   },
   {
     chave: 'privacidade' as const,
@@ -114,6 +114,14 @@ export default function VerificacaoPsicologoPage() {
           crp_state: (registro.crp_state as VerificacaoIdentidadeInput['crp_state']) || undefined,
           birth_date: registro.birth_date || '',
           phone: perfil.phone || '',
+          postal_code: registro.postal_code || '',
+          address_street: registro.address_street || '',
+          address_number: registro.address_number || '',
+          address_complement: registro.address_complement || '',
+          address_district: registro.address_district || '',
+          address_city: registro.address_city || '',
+          address_state: (registro.address_state as VerificacaoIdentidadeInput['address_state']) || undefined,
+          income_value: registro.income_value != null ? String(registro.income_value) : '',
         })
 
         const { data: docs } = await supabase
@@ -129,6 +137,13 @@ export default function VerificacaoPsicologoPage() {
           crp_number: '',
           birth_date: '',
           phone: perfil.phone || '',
+          postal_code: '',
+          address_street: '',
+          address_number: '',
+          address_complement: '',
+          address_district: '',
+          address_city: '',
+          income_value: '',
         })
       }
 
@@ -155,6 +170,16 @@ export default function VerificacaoPsicologoPage() {
       crp_number: dados.crp_number,
       crp_state: dados.crp_state,
       birth_date: dados.birth_date,
+      postal_code: dados.postal_code.replace(/\D/g, ''),
+      address_street: dados.address_street.trim(),
+      address_number: dados.address_number.trim(),
+      address_complement: dados.address_complement?.trim() || null,
+      address_district: dados.address_district.trim(),
+      address_city: dados.address_city.trim(),
+      address_state: dados.address_state,
+      // o schema guarda string para não quebrar o resolver do react-hook-form;
+      // a conversão para número acontece aqui, aceitando "3.500,00" e "3500"
+      income_value: Number(dados.income_value.replace(/\./g, '').replace(',', '.')),
       // session_price é NOT NULL na tabela; a 0013 cria um default, mas mandar o
       // valor explícito evita depender da ordem em que as migrations foram aplicadas.
       session_price: PRECO_SESSAO_PADRAO,
@@ -444,6 +469,77 @@ export default function VerificacaoPsicologoPage() {
 
           <Campo label="Telefone com DDD" erro={errors.phone?.message}>
             <input type="tel" placeholder="(11) 90000-0000" {...register('phone')} className={inputClasse} />
+          </Campo>
+
+          <div className="pt-2 border-t border-slate-100">
+            <h3 className="text-sm font-medium text-slate-800 mt-4">Dados para recebimento</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Exigidos pela instituição de pagamento para abrir a conta que recebe seus repasses. Não aparecem no seu
+              perfil público — só a equipe de verificação enxerga.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Campo label="CEP" erro={errors.postal_code?.message}>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="00000-000"
+                disabled={!emEdicao}
+                {...register('postal_code')}
+                className={inputClasse}
+              />
+            </Campo>
+            <div className="sm:col-span-2">
+              <Campo label="Logradouro" erro={errors.address_street?.message}>
+                <input
+                  type="text"
+                  placeholder="Rua, avenida..."
+                  disabled={!emEdicao}
+                  {...register('address_street')}
+                  className={inputClasse}
+                />
+              </Campo>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Campo label="Número" erro={errors.address_number?.message}>
+              <input type="text" disabled={!emEdicao} {...register('address_number')} className={inputClasse} />
+            </Campo>
+            <Campo label="Complemento (opcional)" erro={errors.address_complement?.message}>
+              <input type="text" disabled={!emEdicao} {...register('address_complement')} className={inputClasse} />
+            </Campo>
+            <Campo label="Bairro" erro={errors.address_district?.message}>
+              <input type="text" disabled={!emEdicao} {...register('address_district')} className={inputClasse} />
+            </Campo>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <Campo label="Cidade" erro={errors.address_city?.message}>
+                <input type="text" disabled={!emEdicao} {...register('address_city')} className={inputClasse} />
+              </Campo>
+            </div>
+            <Campo label="Estado" erro={errors.address_state?.message}>
+              <select disabled={!emEdicao} {...register('address_state')} className={inputClasse}>
+                <option value="">UF</option>
+                {UFS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+            </Campo>
+          </div>
+
+          <Campo label="Renda mensal aproximada" erro={errors.income_value?.message}>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Ex: 5000"
+              disabled={!emEdicao}
+              {...register('income_value')}
+              className={inputClasse}
+            />
           </Campo>
 
           <div className="text-xs text-slate-500 bg-slate-50 rounded-xl px-4 py-3">

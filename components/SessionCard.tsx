@@ -137,6 +137,7 @@ export default function SessionCard({
         <CancelamentoDialog
           appointmentId={appointment.id}
           startsAt={appointment.starts_at}
+          criadoEm={appointment.created_at}
           canceladoPor={role === 'psychologist' ? 'psychologist' : role === 'admin' ? 'admin' : 'patient'}
           onFechar={() => setMostrarCancelamento(false)}
           onCancelado={onChange}

@@ -8,6 +8,8 @@ import { formatarDataHora, formatarPreco, cn } from '@/lib/utils'
 interface CancelamentoDialogProps {
   appointmentId: string
   startsAt: string
+  /** created_at da sessão, para a janela de arrependimento. */
+  criadoEm?: string | null
   canceladoPor: CanceladoPor
   onFechar: () => void
   onCancelado: () => void
@@ -25,6 +27,7 @@ interface CancelamentoDialogProps {
 export default function CancelamentoDialog({
   appointmentId,
   startsAt,
+  criadoEm,
   canceladoPor,
   onFechar,
   onCancelado,
@@ -40,7 +43,7 @@ export default function CancelamentoDialog({
   } | null>(null)
 
   const dialogRef = useRef<HTMLDivElement>(null)
-  const previsao = calcularCancelamento({ startsAt, canceladoPor })
+  const previsao = calcularCancelamento({ startsAt, canceladoPor, criadoEm })
   const prazoGratuito = prazoLimiteCancelamento(startsAt)
 
   // foco vai para o diálogo ao abrir e Esc fecha — sem isso o teclado fica

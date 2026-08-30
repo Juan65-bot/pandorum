@@ -37,8 +37,21 @@ export const patientProfileSchema = z.object({
   nascimento: z.string().optional(),
   genero: z.string().optional(),
   queixa: z.string().max(1000, 'Máximo de 1000 caracteres').optional(),
+  // Obrigatório para pagar: o Asaas exige cpfCnpj para criar o cliente da
+  // cobrança. Fica opcional no schema porque o paciente pode salvar o perfil
+  // antes de agendar; quem exige de fato é a tela de pagamento.
+  cpf: z
+    .string()
+    .optional()
+    .refine((v) => !v || validarCPF(v), 'CPF inválido — confira os números digitados'),
 })
 export type PatientProfileInput = z.infer<typeof patientProfileSchema>
+
+/** CPF do paciente no momento do pagamento, aí sim obrigatório. */
+export const cpfObrigatorioSchema = z.object({
+  cpf: z.string().refine(validarCPF, 'CPF inválido — confira os números digitados'),
+})
+export type CpfObrigatorioInput = z.infer<typeof cpfObrigatorioSchema>
 
 /**
  * Perfil profissional público (especialidades, abordagens, bio).
@@ -78,6 +91,29 @@ export const verificacaoIdentidadeSchema = z.object({
   phone: z
     .string()
     .refine((v) => v.replace(/\D/g, '').length >= 10, 'Informe um telefone com DDD'),
+
+  // Endereço e renda são exigidos pelo Asaas em POST /v3/accounts para abrir a
+  // subconta que recebe o repasse. Sem subconta não existe walletId, e sem
+  // walletId não existe split — o psicólogo simplesmente não teria como receber.
+  postal_code: z
+    .string()
+    .refine((v) => v.replace(/\D/g, '').length === 8, 'CEP deve ter 8 dígitos'),
+  address_street: z.string().min(3, 'Informe o logradouro'),
+  address_number: z.string().min(1, 'Informe o número'),
+  address_complement: z.string().max(60).optional(),
+  address_district: z.string().min(2, 'Informe o bairro'),
+  address_city: z.string().min(2, 'Informe a cidade'),
+  address_state: z.enum(UFS, { message: 'Selecione o estado' }),
+  // String, não z.coerce.number(): o coerce faz o tipo de ENTRADA do schema
+  // virar `unknown`, e o resolver do react-hook-form deixa de casar com o tipo
+  // do formulário. A conversão para número acontece na hora de salvar.
+  income_value: z
+    .string()
+    .min(1, 'Informe sua renda mensal')
+    .refine((v) => {
+      const n = Number(v.replace(/\./g, '').replace(',', '.'))
+      return Number.isFinite(n) && n > 0 && n <= 1_000_000
+    }, 'Informe um valor mensal válido'),
 })
 export type VerificacaoIdentidadeInput = z.infer<typeof verificacaoIdentidadeSchema>
 

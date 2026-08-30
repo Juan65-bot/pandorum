@@ -8,7 +8,7 @@ import AvatarUpload from '@/components/AvatarUpload'
 import { createClient } from '@/lib/supabase/client'
 import { ensureProfile } from '@/lib/ensureProfile'
 import { patientProfileSchema, type PatientProfileInput } from '@/lib/validation'
-import { capitalizarNome } from '@/lib/utils'
+import { capitalizarNome, formatarCPF } from '@/lib/utils'
 import type { Profile } from '@/lib/types'
 
 export default function PerfilPage() {
@@ -23,8 +23,12 @@ export default function PerfilPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PatientProfileInput>({ resolver: zodResolver(patientProfileSchema) })
+
+  const cpfDigitado = watch('cpf') || ''
 
   useEffect(() => {
     async function getProfile() {
@@ -50,6 +54,7 @@ export default function PerfilPage() {
       reset({
         telefone: data?.phone || '',
         nascimento: patient?.birth_date || '',
+        cpf: patient?.cpf ? formatarCPF(patient.cpf) : '',
         genero: patient?.gender || '',
         queixa: patient?.main_complaint || '',
       })
@@ -74,6 +79,7 @@ export default function PerfilPage() {
 
     const payload = {
       birth_date: dados.nascimento || null,
+      cpf: dados.cpf ? dados.cpf.replace(/\D/g, '') : null,
       gender: dados.genero,
       main_complaint: dados.queixa,
     }
@@ -146,6 +152,24 @@ export default function PerfilPage() {
               {...register('telefone')}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-500"
             />
+          </div>
+
+          <div>
+            <label htmlFor="cpf" className="text-sm font-medium text-slate-700 block mb-1">CPF</label>
+            <input
+              id="cpf"
+              type="text"
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              {...register('cpf')}
+              value={formatarCPF(cpfDigitado)}
+              onChange={(e) => setValue('cpf', formatarCPF(e.target.value), { shouldValidate: false })}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-500"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Necessário para emitir a cobrança das sessões. Não aparece para o psicólogo.
+            </p>
+            {errors.cpf && <p className="text-xs text-red-600 mt-1">{errors.cpf.message}</p>}
           </div>
 
           <div>

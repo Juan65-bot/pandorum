@@ -4,7 +4,7 @@ import { Wallet, Percent, CheckCircle2, Clock3 } from 'lucide-react'
 import RevenueChart, { type PontoReceita } from '@/components/admin/RevenueChart'
 import { createClient } from '@/lib/supabase/client'
 import { formatarPreco } from '@/lib/utils'
-import { TAXA_PLATAFORMA } from '@/lib/stripe'
+import { RETENCAO_PLATAFORMA_SESSAO, PRECO_SESSAO_PADRAO } from '@/lib/types'
 import type { Payment } from '@/lib/types'
 
 const MESES_HISTORICO = 6
@@ -70,7 +70,7 @@ export default function AdminFinanceiroPage() {
           <div className="text-2xl font-serif">{formatarPreco(receitaMesAtual)}</div>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-1.5 text-purple-500 text-xs mb-2"><Percent className="w-4 h-4" /> Comissões recebidas ({Math.round(TAXA_PLATAFORMA * 100)}%)</div>
+          <div className="flex items-center gap-1.5 text-purple-500 text-xs mb-2"><Percent className="w-4 h-4" /> Retido pela plataforma ({formatarPreco(RETENCAO_PLATAFORMA_SESSAO)} de {formatarPreco(PRECO_SESSAO_PADRAO)})</div>
           <div className="text-2xl font-serif text-slate-800">{formatarPreco(comissaoTotal)}</div>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">

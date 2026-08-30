@@ -4,7 +4,74 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { calcularCancelamento, type CanceladoPor } from '@/lib/cancelamento'
 import { enviarEmail, emailCancelamentoPaciente, emailCancelamentoPsicologo } from '@/lib/email'
-import { capitalizarNome } from '@/lib/utils'
+import { capitalizarNome, validarCPF } from '@/lib/utils'
+import {
+  asaasConfigurado,
+  obterOuCriarCliente,
+  criarCobrancaMultaCancelamento,
+  AsaasError,
+} from '@/lib/asaas'
+import { createAdminClient as adminParaCobranca } from '@/lib/supabase/admin'
+
+/**
+ * Emite a cobrança avulsa da multa de cancelamento tardio.
+ *
+ * Separada da rota porque é o único ponto que fala com o gateway aqui, e porque
+ * falhar nela não pode desfazer o cancelamento: a sessão já foi cancelada e o
+ * horário já foi liberado. Quando não dá para cobrar, a linha de payments fica
+ * 'pending' e o paciente é avisado de que a equipe entrará em contato — melhor
+ * que fingir que cobrou.
+ */
+async function emitirCobrancaMulta(dados: {
+  appointmentId: string
+  patientProfileId: string
+  psychologistId: string
+  valor: number
+  repassePsicologo: number
+  paymentRowId?: string
+}): Promise<{ ok: boolean; motivo?: string }> {
+  if (!asaasConfigurado()) return { ok: false, motivo: 'ASAAS_API_KEY não configurada' }
+
+  const admin = adminParaCobranca()
+
+  const [{ data: perfil }, { data: paciente }, { data: psicologo }] = await Promise.all([
+    admin.from('profiles').select('full_name, email, phone').eq('id', dados.patientProfileId).maybeSingle(),
+    admin.from('patients').select('cpf').eq('profile_id', dados.patientProfileId).maybeSingle(),
+    admin.from('psychologists').select('asaas_wallet_id').eq('id', dados.psychologistId).maybeSingle(),
+  ])
+
+  if (!paciente?.cpf || !validarCPF(paciente.cpf)) return { ok: false, motivo: 'paciente sem CPF válido' }
+  if (!psicologo?.asaas_wallet_id) return { ok: false, motivo: 'psicólogo sem carteira Asaas' }
+
+  try {
+    const cliente = await obterOuCriarCliente({
+      nome: capitalizarNome(perfil?.full_name) || 'Paciente Pandorum',
+      cpf: paciente.cpf,
+      email: perfil?.email || undefined,
+      telefone: perfil?.phone || undefined,
+    })
+
+    const cobranca = await criarCobrancaMultaCancelamento({
+      customerId: cliente.id,
+      appointmentId: dados.appointmentId,
+      descricao: 'Taxa de cancelamento com menos de 24h de antecedência',
+      valor: dados.valor,
+      repassePsicologo: dados.repassePsicologo,
+      walletIdPsicologo: psicologo.asaas_wallet_id,
+    })
+
+    if (dados.paymentRowId) {
+      await admin
+        .from('payments')
+        .update({ gateway_payment_id: cobranca.id, gateway_invoice_url: cobranca.invoiceUrl })
+        .eq('id', dados.paymentRowId)
+    }
+
+    return { ok: true }
+  } catch (erro) {
+    return { ok: false, motivo: erro instanceof AsaasError ? erro.message : String(erro) }
+  }
+}
 
 /**
  * Cancela uma sessão aplicando a política da plataforma.
@@ -33,7 +100,7 @@ export async function POST(request: NextRequest) {
   // das quais participa. Se voltar vazio, ou não existe ou não é dele.
   const { data: sessao } = await supabase
     .from('appointments')
-    .select('id, patient_id, psychologist_id, starts_at, ends_at, status')
+    .select('id, patient_id, psychologist_id, starts_at, ends_at, status, created_at')
     .eq('id', appointmentId)
     .maybeSingle()
 
@@ -78,7 +145,11 @@ export async function POST(request: NextRequest) {
   const canceladoPor: CanceladoPor = ehPaciente ? 'patient' : ehPsicologoDaSessao ? 'psychologist' : 'admin'
 
   // ---------- a conta, feita aqui e só aqui ----------
-  const resultado = calcularCancelamento({ startsAt: sessao.starts_at, canceladoPor })
+  const resultado = calcularCancelamento({
+    startsAt: sessao.starts_at,
+    canceladoPor,
+    criadoEm: sessao.created_at,
+  })
 
   // A partir daqui escrevo com service role: os campos financeiros e de
   // auditoria do cancelamento são protegidos por trigger contra escrita vinda
@@ -144,12 +215,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (!jaPago) {
-      // A cobrança em si depende do Stripe, que ainda não faz captura fora do
-      // checkout. A linha fica 'pending' e aparece no painel financeiro.
-      console.warn(
-        `Cancelamento tardio sem pagamento prévio (sessão ${appointmentId}): ` +
-        `taxa de R$ ${resultado.valorMulta} registrada como pendente, cobrança precisa ser feita manualmente.`
-      )
+      // Caso normal agora que a cobrança da sessão só vence 24h antes dela: o
+      // paciente cancela em cima da hora sem nunca ter pago, então não há o que
+      // reter — é preciso emitir uma cobrança nova, só da multa, com o mesmo
+      // split (R$ 50 para o psicólogo, o resto para a plataforma).
+      const emitida = await emitirCobrancaMulta({
+        appointmentId,
+        patientProfileId: sessao.patient_id,
+        psychologistId: sessao.psychologist_id,
+        valor: resultado.valorMulta,
+        repassePsicologo: resultado.repassePsicologo,
+        paymentRowId: pagamento?.id,
+      })
+
+      if (!emitida.ok) {
+        avisoFinanceiro =
+          'A sessão foi cancelada. A taxa de cancelamento ficou registrada como pendente e ' +
+          'nossa equipe entrará em contato para a cobrança.'
+        console.error('Multa de cancelamento não pôde ser cobrada:', appointmentId, emitida.motivo)
+      }
     }
   } else if (pagamento) {
     // Cancelamento gratuito: devolve tudo o que houver.
