@@ -8,9 +8,19 @@ Pelas **Resoluções Conjuntas 16 e 17 do Banco Central**, só conta **pessoa ju
 pode criar subcontas no Asaas. Como o split depende de subconta, e cada psicólogo
 precisa da sua para receber, a integração real **só funciona depois do CNPJ**.
 
-Na sandbox isso não bloqueia nada: subcontas são criadas normalmente e dá para
-desenvolver e testar o fluxo inteiro. O código não muda por causa disso — o que
-muda é só a chave.
+**A sandbox aplica exatamente a mesma regra.** Isso foi verificado, não suposto:
+com a conta sandbox atual (pessoa física), `POST /v3/accounts` responde
+
+> HTTP 403 — "Contas de pessoa física (CPF) não podem criar subcontas no Asaas.
+> Apenas contas de pessoa jurídica (CNPJ) podem acessar essa funcionalidade."
+
+Ou seja: **não existe como testar subconta nem split antes do CNPJ**, nem mesmo
+em ambiente de teste. Split para a própria carteira também é recusado
+("Não é permitido split para sua própria carteira"), então não há atalho.
+
+O que É testável hoje na sandbox, e já foi: autenticação da chave, criação e
+deduplicação de cliente por CPF, criação de cobrança, cálculo do vencimento
+(inclusive no caso de curtíssimo prazo) e o webhook de ponta a ponta.
 
 ## Checklist da virada
 

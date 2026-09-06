@@ -31,10 +31,22 @@ export default function AuthShell({ subtitulo, children }: AuthShellProps) {
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-100">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-serif text-slate-800">
+              {/* Mesmas afordâncias do logo do Header (ver components/LogoInicio),
+                  escritas aqui em vez de reusar o componente porque ele traz um
+                  <div> para posicionar o tooltip, e <div> dentro de <h1> é HTML
+                  inválido. Sem tooltip também: o link "Voltar ao início" está
+                  logo acima e diria a mesma coisa. */}
               <Link
                 href="/"
                 aria-label="Pandorum — ir para a página inicial"
-                className="rounded hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                className="
+                  inline-block rounded-xl px-2.5 py-1 cursor-pointer
+                  transition-all duration-150
+                  hover:bg-slate-100 hover:-translate-y-px hover:shadow-sm
+                  active:translate-y-0 active:shadow-none
+                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+                  focus-visible:outline-teal-600
+                "
               >
                 Pan<span className="text-teal-600">dorum</span>
               </Link>
