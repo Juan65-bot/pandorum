@@ -1,6 +1,6 @@
 'use client'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { ShieldOff, ShieldCheck, ChevronDown, ChevronUp, Search, ExternalLink } from 'lucide-react'
+import { ShieldOff, ShieldCheck, ChevronDown, ChevronUp, Search, ExternalLink, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import StatusBadge from '@/components/admin/StatusBadge'
 import Pagination from '@/components/admin/Pagination'
@@ -31,6 +31,7 @@ export default function AdminPsicologosPage() {
   const [pagina, setPagina] = useState(1)
   const [expandido, setExpandido] = useState<string | null>(null)
   const [erroAcao, setErroAcao] = useState('')
+  const [processandoId, setProcessandoId] = useState<string | null>(null)
   const supabase = createClient()
 
   async function carregar() {
@@ -98,24 +99,42 @@ export default function AdminPsicologosPage() {
    *
    * Aprovar NÃO acontece nesta tela de propósito: aprovação exige o checklist
    * e a conferência dos documentos, que vivem em /admin/verificacoes.
+   *
+   * "processandoId" guarda qual linha está em andamento, não um booleano: o
+   * admin pode agir em várias linhas, e travar a tabela inteira seria pior que
+   * o problema. Só o botão da linha em curso desabilita.
+   *
+   * Sem isso, um duplo clique disparava a mesma ação duas ou três vezes. O
+   * status final ficava certo (suspender duas vezes continua suspenso), mas
+   * cada disparo gravava uma entrada em verification_audit_log — e o histórico
+   * aparecia com "suspended -> suspended" repetido no mesmo segundo, o que faz
+   * um registro de auditoria parecer defeituoso justamente quando alguém
+   * recorre a ele para entender o que aconteceu.
    */
   async function mudarStatus(id: string, acao: 'suspender' | 'reativar') {
+    if (processandoId) return
     setErroAcao('')
+    setProcessandoId(id)
 
-    const resposta = await fetch('/api/admin/verificacoes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ psychologistId: id, acao }),
-    })
+    try {
+      const resposta = await fetch('/api/admin/verificacoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ psychologistId: id, acao }),
+      })
 
-    if (!resposta.ok) {
-      const json = await resposta.json().catch(() => ({}))
-      console.error('Erro ao mudar status do psicólogo:', json)
-      setErroAcao(json.error || 'Não foi possível atualizar o status desse psicólogo.')
-      return
+      if (!resposta.ok) {
+        const json = await resposta.json().catch(() => ({}))
+        console.error('Erro ao mudar status do psicólogo:', json)
+        setErroAcao(json.error || 'Não foi possível atualizar o status desse psicólogo.')
+        return
+      }
+
+      await carregar()
+    } finally {
+      // no finally para que um erro de rede não deixe o botão travado para sempre
+      setProcessandoId(null)
     }
-
-    carregar()
   }
 
   if (loading) {
@@ -217,19 +236,25 @@ export default function AdminPsicologosPage() {
                           {p.status === 'approved' && (
                             <button
                               onClick={() => mudarStatus(p.id, 'suspender')}
-                              title="Suspender"
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
+                              disabled={processandoId !== null}
+                              title={processandoId === p.id ? 'Suspendendo...' : 'Suspender'}
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              <ShieldOff className="w-4 h-4" />
+                              {processandoId === p.id
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <ShieldOff className="w-4 h-4" />}
                             </button>
                           )}
                           {p.status === 'suspended' && (
                             <button
                               onClick={() => mudarStatus(p.id, 'reativar')}
-                              title="Reativar"
-                              className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50"
+                              disabled={processandoId !== null}
+                              title={processandoId === p.id ? 'Reativando...' : 'Reativar'}
+                              className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              <ShieldCheck className="w-4 h-4" />
+                              {processandoId === p.id
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <ShieldCheck className="w-4 h-4" />}
                             </button>
                           )}
                           <button
