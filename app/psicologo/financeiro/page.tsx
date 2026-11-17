@@ -164,11 +164,6 @@ export default function FinanceiroPsicologoPage() {
               <p className="text-teal-200/80 text-xs mt-2">
                 Você pode sacar quando quiser — não há prazo nem valor mínimo.
               </p>
-              {dados.aguardandoPagamento > 0 && (
-                <p className="text-teal-200/70 text-xs mt-1">
-                  Mais {formatarPreco(dados.aguardandoPagamento)} em sessões aguardando pagamento do paciente.
-                </p>
-              )}
             </>
           ) : (
             <>
@@ -177,6 +172,16 @@ export default function FinanceiroPsicologoPage() {
                 {dados?.saldoIndisponivel || 'Saldo indisponível no momento.'}
               </p>
             </>
+          )}
+
+          {/* Fora do if/else de propósito: enquanto não existir subconta o saldo
+              fica indisponível, e o valor a receber é justamente a informação
+              que sobra para ele se orientar. Dentro do ramo do saldo, essa linha
+              nunca apareceria para quem mais precisa dela. */}
+          {!!dados?.aguardandoPagamento && dados.aguardandoPagamento > 0 && (
+            <p className="text-teal-200/70 text-xs mt-3 pt-3 border-t border-white/10">
+              Mais {formatarPreco(dados.aguardandoPagamento)} em sessões aguardando pagamento do paciente.
+            </p>
           )}
         </section>
 
