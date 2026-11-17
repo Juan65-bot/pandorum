@@ -9,6 +9,8 @@ import {
 } from '@/lib/email'
 import { capitalizarNome } from '@/lib/utils'
 import { asaasConfigurado, criarSubcontaPsicologo, AsaasError } from '@/lib/asaas'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { criptografar } from '@/lib/crypto'
 import { CHECKLIST_VERIFICACAO, type PsychologistStatus, type VerificationAction } from '@/lib/types'
 
 type Acao = 'aprovar' | 'rejeitar' | 'solicitar_documento' | 'suspender' | 'reativar'
@@ -180,6 +182,31 @@ export async function POST(request: NextRequest) {
         patch.asaas_account_id = subconta.id
         patch.asaas_wallet_id = subconta.walletId
         patch.asaas_account_error = null
+
+        // O Asaas devolve a chave da subconta UMA ÚNICA VEZ, aqui. Sem guardá-la
+        // agora não há como recuperá-la depois pela API — e sem ela o psicólogo
+        // nunca veria o próprio saldo, porque a conta-mãe não enxerga o saldo das
+        // subcontas. Vai criptografada, em tabela separada sem acesso de cliente.
+        if (subconta.apiKey) {
+          const cifrada = criptografar(subconta.apiKey)
+          const { error: erroCred } = await createAdminClient()
+            .from('psychologist_asaas_credentials')
+            .upsert(
+              { psychologist_id: psychologistId, api_key_encrypted: cifrada, updated_at: new Date().toISOString() },
+              { onConflict: 'psychologist_id' }
+            )
+
+          if (erroCred) {
+            // não desfaz a aprovação: a subconta existe e o split já funciona.
+            // O que se perde é só a leitura de saldo no dashboard dele.
+            console.error('Subconta criada mas a chave não pôde ser guardada:', psychologistId, erroCred)
+            avisoSubconta =
+              'Conta de recebimento criada, mas a chave de consulta não pôde ser salva. ' +
+              'O split funciona; o saldo não aparecerá no painel dele.'
+          }
+        } else {
+          console.error('Asaas não devolveu apiKey ao criar a subconta de', psychologistId)
+        }
       } catch (erro) {
         const detalhe = erro instanceof AsaasError ? erro.message : 'erro inesperado'
         console.error('Falha ao criar subconta Asaas para', psychologistId, detalhe)

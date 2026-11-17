@@ -331,6 +331,7 @@ export default function DashboardPsicologoPage() {
           <AtalhoCard icone={<CalendarDays className="w-5 h-5" />} titulo="Agenda" descricao="Veja sua semana e seus horários livres" href="/psicologo/agenda" cta="Abrir agenda" />
           <AtalhoCard icone={<Users className="w-5 h-5" />} titulo="Pacientes" descricao="Histórico completo de quem você atende" href="/psicologo/pacientes" cta="Ver pacientes" secundario />
           <AtalhoCard icone={<BadgeCheck className="w-5 h-5" />} titulo="Perfil profissional" descricao="Especialidades, abordagens e bio" href="/psicologo/completar-perfil" cta="Gerenciar perfil" secundario />
+          <AtalhoCard icone={<Wallet className="w-5 h-5" />} titulo="Financeiro" descricao="Saldo, extrato e recibos" href="/psicologo/financeiro" cta="Ver financeiro" secundario />
           <AtalhoCard icone={<ShieldCheck className="w-5 h-5" />} titulo="Verificação profissional" descricao="CRP, documentos e status da análise" href="/psicologo/verificacao" cta="Ver verificação" secundario />
         </div>
       </div>

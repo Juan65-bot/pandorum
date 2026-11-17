@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { enviarLembretesDeSaque } from '@/lib/lembreteSaque'
 
 /**
  * Marca como "completed" toda sessão confirmada cujo horário já passou.
@@ -55,9 +56,12 @@ export async function GET(request: NextRequest) {
     console.error('Erro ao liberar horários não pagos:', erroAbandonadas)
   }
 
+  const lembretes = await enviarLembretesDeSaque(admin)
+
   return NextResponse.json({
     ok: true,
     sessoesConcluidas: data?.length ?? 0,
     horariosLiberados: abandonadas?.length ?? 0,
+    lembretesEnviados: lembretes,
   })
 }

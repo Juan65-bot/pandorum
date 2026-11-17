@@ -281,3 +281,27 @@ export function emailCancelamentoPsicologo(d: DadosCancelamento) {
     }),
   }
 }
+
+// ============================================================
+// Lembrete de saque
+// ============================================================
+
+export function emailLembreteSaque(nome: string, saldo: number, frequencia: string) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pandorum.vercel.app'
+  const reais = saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+  return {
+    assunto: `Você tem ${reais} disponíveis para saque`,
+    html: layout({
+      titulo: `${escapar(nome)}, há saldo na sua conta`,
+      corpo: `
+        <p style="font-size:26px;margin:0 0 4px;color:#0f766e;"><strong>${reais}</strong></p>
+        <p style="margin:0 0 16px;color:#64748b;">disponíveis para saque agora</p>
+        <p>Este é apenas um lembrete, na frequência que você escolheu (${escapar(frequencia)}).
+        <strong>Não há prazo nem valor mínimo</strong> — o dinheiro é seu e fica disponível até você sacar.</p>
+        <p>O saque acontece na sua conta Asaas, para a conta bancária que você cadastrou lá.</p>
+      `,
+      cta: { label: 'Ver meu financeiro', href: `${siteUrl}/psicologo/financeiro` },
+    }),
+  }
+}
