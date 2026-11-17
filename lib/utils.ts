@@ -60,11 +60,32 @@ export function formatarCPF(valor: string): string {
 }
 
 /** Monta o CRP no formato oficial "CRP 06/123456" a partir da região e do número. */
+/**
+ * Monta o CRP no formato oficial "CRP 06/123456".
+ *
+ * Precisa lidar com dois formatos no banco ao mesmo tempo. O cadastro atual
+ * guarda região e número separados, mas registros anteriores ao fluxo de
+ * verificação gravaram tudo junto em crp_number ("06/123456"). Quando um
+ * desses registros antigos ganha uma crp_region, concatenar os dois produzia
+ * "CRP 06/06123456" — visto no recibo, que é documento usado para imposto.
+ *
+ * Por isso a checagem pelo separador: número que já traz a região dentro está
+ * completo e não recebe prefixo nenhum.
+ */
 export function formatarCRP(regiao: string | null, numero: string | null): string {
   if (!numero) return '—'
-  const limpo = numero.replace(/\D/g, '')
-  if (!regiao) return `CRP ${numero}`
-  return `CRP ${regiao.padStart(2, '0')}/${limpo}`
+
+  const bruto = numero.trim()
+  const jaTemRegiao = bruto.includes('/')
+
+  if (jaTemRegiao) {
+    const [reg, num] = bruto.split('/')
+    return `CRP ${reg.replace(/\D/g, '').padStart(2, '0')}/${(num || '').replace(/\D/g, '')}`
+  }
+
+  const limpo = bruto.replace(/\D/g, '')
+  if (!regiao) return `CRP ${limpo}`
+  return `CRP ${regiao.replace(/\D/g, '').padStart(2, '0')}/${limpo}`
 }
 
 export function formatarTamanhoArquivo(bytes: number | null): string {
